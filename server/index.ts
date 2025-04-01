@@ -56,9 +56,7 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 3000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
+  // Main server port (3000 for API and client)
   const port = 3000;
   server.listen({
     port,
@@ -66,5 +64,15 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+  });
+  
+  // Additional listener for Replit workflow on port 5000
+  // This just forwards to the main server
+  server.listen({
+    port: 5000,
+    host: "0.0.0.0",
+    reusePort: true,
+  }, () => {
+    log(`serving on port 5000 (for workflow)`);
   });
 })();

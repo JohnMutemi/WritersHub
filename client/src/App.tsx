@@ -1,8 +1,7 @@
-import { Switch, Route } from "wouter";
+import { Route, Switch } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
-import { ProtectedRoute } from "./lib/protected-route";
 import WriterDashboard from "@/pages/writer/dashboard";
 import WriterAvailableJobs from "@/pages/writer/available-jobs";
 import WriterPendingBids from "@/pages/writer/pending-bids";
@@ -14,55 +13,27 @@ import ClientDashboard from "@/pages/client/dashboard";
 import ClientPostJob from "@/pages/client/post-job";
 import ClientManageOrders from "@/pages/client/manage-orders";
 import AdminDashboard from "@/pages/admin/dashboard";
-import { useAuth } from "./hooks/use-auth";
 import { Loader2 } from "lucide-react";
 
-function Router() {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-border" />
-      </div>
-    );
-  }
-
-  return (
-    <Switch>
-      {/* Auth route */}
-      <Route path="/auth" component={AuthPage} />
-
-      {/* Writer routes */}
-      <ProtectedRoute path="/" component={() => 
-        user?.role === "writer" ? <WriterDashboard /> : 
-        user?.role === "client" ? <ClientDashboard /> : 
-        <AdminDashboard />
-      } />
-      <ProtectedRoute path="/writer/available-jobs" component={WriterAvailableJobs} />
-      <ProtectedRoute path="/writer/pending-bids" component={WriterPendingBids} />
-      <ProtectedRoute path="/writer/active-orders" component={WriterActiveOrders} />
-      <ProtectedRoute path="/writer/order-history" component={WriterOrderHistory} />
-      <ProtectedRoute path="/writer/earnings" component={WriterEarnings} />
-      <ProtectedRoute path="/writer/profile" component={WriterProfile} />
-
-      {/* Client routes */}
-      <ProtectedRoute path="/client/post-job" component={ClientPostJob} />
-      <ProtectedRoute path="/client/manage-orders" component={ClientManageOrders} />
-
-      {/* Admin routes */}
-      <ProtectedRoute path="/admin" component={AdminDashboard} />
-
-      {/* Fallback to 404 */}
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
-
+// Simple App without complex routing logic
 function App() {
   return (
     <>
-      <Router />
+      <Switch>
+        <Route path="/auth" component={AuthPage} />
+        <Route path="/" component={WriterDashboard} />
+        <Route path="/writer/available-jobs" component={WriterAvailableJobs} />
+        <Route path="/writer/pending-bids" component={WriterPendingBids} />
+        <Route path="/writer/active-orders" component={WriterActiveOrders} />
+        <Route path="/writer/order-history" component={WriterOrderHistory} />
+        <Route path="/writer/earnings" component={WriterEarnings} />
+        <Route path="/writer/profile" component={WriterProfile} />
+        <Route path="/client/dashboard" component={ClientDashboard} />
+        <Route path="/client/post-job" component={ClientPostJob} />
+        <Route path="/client/manage-orders" component={ClientManageOrders} />
+        <Route path="/admin/dashboard" component={AdminDashboard} />
+        <Route component={NotFound} />
+      </Switch>
       <Toaster />
     </>
   );
