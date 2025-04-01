@@ -13,29 +13,39 @@ import ClientDashboard from "@/pages/client/dashboard";
 import ClientPostJob from "@/pages/client/post-job";
 import ClientManageOrders from "@/pages/client/manage-orders";
 import AdminDashboard from "@/pages/admin/dashboard";
+import { ProtectedRoute } from "./lib/protected-route";
+import { AuthProvider } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 
-// Simple App without complex routing logic
 function App() {
   return (
-    <>
+    <AuthProvider>
+      <Toaster />
       <Switch>
+        {/* Public routes */}
         <Route path="/auth" component={AuthPage} />
-        <Route path="/" component={WriterDashboard} />
-        <Route path="/writer/available-jobs" component={WriterAvailableJobs} />
-        <Route path="/writer/pending-bids" component={WriterPendingBids} />
-        <Route path="/writer/active-orders" component={WriterActiveOrders} />
-        <Route path="/writer/order-history" component={WriterOrderHistory} />
-        <Route path="/writer/earnings" component={WriterEarnings} />
-        <Route path="/writer/profile" component={WriterProfile} />
-        <Route path="/client/dashboard" component={ClientDashboard} />
-        <Route path="/client/post-job" component={ClientPostJob} />
-        <Route path="/client/manage-orders" component={ClientManageOrders} />
-        <Route path="/admin/dashboard" component={AdminDashboard} />
+        
+        {/* Protected writer routes */}
+        <ProtectedRoute path="/" component={WriterDashboard} allowedRoles={["writer"]} />
+        <ProtectedRoute path="/writer/available-jobs" component={WriterAvailableJobs} allowedRoles={["writer"]} />
+        <ProtectedRoute path="/writer/pending-bids" component={WriterPendingBids} allowedRoles={["writer"]} />
+        <ProtectedRoute path="/writer/active-orders" component={WriterActiveOrders} allowedRoles={["writer"]} />
+        <ProtectedRoute path="/writer/order-history" component={WriterOrderHistory} allowedRoles={["writer"]} />
+        <ProtectedRoute path="/writer/earnings" component={WriterEarnings} allowedRoles={["writer"]} />
+        <ProtectedRoute path="/writer/profile" component={WriterProfile} allowedRoles={["writer"]} />
+        
+        {/* Protected client routes */}
+        <ProtectedRoute path="/client/dashboard" component={ClientDashboard} allowedRoles={["client"]} />
+        <ProtectedRoute path="/client/post-job" component={ClientPostJob} allowedRoles={["client"]} />
+        <ProtectedRoute path="/client/manage-orders" component={ClientManageOrders} allowedRoles={["client"]} />
+        
+        {/* Protected admin routes */}
+        <ProtectedRoute path="/admin/dashboard" component={AdminDashboard} allowedRoles={["admin"]} />
+        
+        {/* Fallback route */}
         <Route component={NotFound} />
       </Switch>
-      <Toaster />
-    </>
+    </AuthProvider>
   );
 }
 

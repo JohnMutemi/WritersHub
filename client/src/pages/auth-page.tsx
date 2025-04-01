@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -34,15 +34,15 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState("login");
-  const { loginMutation, registerMutation, user } = useAuth();
+  const { loginMutation, registerMutation, user, isLoading } = useAuth();
   const [, navigate] = useLocation();
 
   // Redirect if user is already logged in
-  React.useEffect(() => {
-    if (user) {
+  useEffect(() => {
+    if (user && !isLoading) {
       navigate("/");
     }
-  }, [user, navigate]);
+  }, [user, isLoading, navigate]);
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
