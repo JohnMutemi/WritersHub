@@ -1,17 +1,17 @@
-import React from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Job } from "@shared/schema";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Job } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Loader2 } from "lucide-react";
 
 interface BidModalProps {
   job: Job | null;
@@ -19,11 +19,10 @@ interface BidModalProps {
   onClose: () => void;
 }
 
-// Validation schema for bid form
 const bidFormSchema = z.object({
-  amount: z.number().min(1, "Bid amount must be at least $1"),
-  deliveryTime: z.number().int().min(1, "Delivery time must be at least 1 day"),
-  coverLetter: z.string().min(10, "Cover letter must be at least 10 characters"),
+  amount: z.coerce.number().min(5, "Bid amount must be at least $5"),
+  deliveryTime: z.coerce.number().min(1, "Delivery time must be at least 1 day"),
+  coverLetter: z.string().min(20, "Cover letter must be at least 20 characters"),
 });
 
 type BidFormValues = z.infer<typeof bidFormSchema>;
@@ -35,108 +34,100 @@ export function BidModal({ job, isOpen, onClose }: BidModalProps) {
     resolver: zodResolver(bidFormSchema),
     defaultValues: {
       amount: job?.budget || 0,
-      deliveryTime: job?.deadline || 1,
-      coverLetter: ""
+      deliveryTime: job?.deadline || 7,
+      coverLetter: "",
     },
   });
-  
-  // Update form when job changes
-  React.useEffect(() => {
+
+  // Reset form when job changes
+  useState(() => {
     if (job) {
       form.reset({
-        amount: job.budget || 0,
-        deliveryTime: job.deadline || 1,
-        coverLetter: ""
+        amount: job.budget,
+        deliveryTime: job.deadline ? Math.floor((new Date(job.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 7,
+        coverLetter: "",
       });
     }
-  }, [job, form]);
+  });
 
-  const bidMutation = useMutation({
+  const createBidMutation = useMutation({
     mutationFn: async (values: BidFormValues) => {
-      if (!job) throw new Error("No job selected");
-      
-      const data = {
-        ...values,
-        jobId: job.id,
-      };
-      
-      const response = await apiRequest("POST", "/api/bids", data);
-      return await response.json();
+      const response = await apiRequest('POST', `/api/jobs/${job?.id}/bids`, values);
+      return response.json();
     },
     onSuccess: () => {
       toast({
-        title: "Bid submitted successfully",
-        description: "Your bid has been submitted and is awaiting client review",
+        title: "Bid Submitted",
+        description: "Your bid has been submitted successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/bids"] });
       onClose();
+      queryClient.invalidateQueries({ queryKey: ['/api/writer/bids'] });
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to submit bid",
-        description: error.message,
+        title: "Error",
+        description: error.message || "Failed to submit bid. Please try again.",
         variant: "destructive",
       });
-    },
+    }
   });
 
   const onSubmit = (values: BidFormValues) => {
-    bidMutation.mutate(values);
+    if (job) {
+      createBidMutation.mutate(values);
+    }
   };
-
-  if (!job) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Place a Bid</DialogTitle>
           <DialogDescription>
-            Please enter your bid details for <span className="font-medium">{job?.title}</span>
+            {job?.title || "Loading job details..."}
           </DialogDescription>
         </DialogHeader>
-        
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Your Bid Amount ($)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Enter amount"
-                      step="0.01"
-                      {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="deliveryTime"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Delivery Time (days)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Enter days"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Your Bid ($)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        min={5} 
+                        step={1} 
+                        {...field} 
+                        onChange={e => field.onChange(parseFloat(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="deliveryTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Delivery (Days)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        min={1} 
+                        {...field} 
+                        onChange={e => field.onChange(parseInt(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
               name="coverLetter"
@@ -144,31 +135,26 @@ export function BidModal({ job, isOpen, onClose }: BidModalProps) {
                 <FormItem>
                   <FormLabel>Cover Letter</FormLabel>
                   <FormControl>
-                    <Textarea
-                      rows={4}
-                      placeholder="Explain why you're the best fit for this job..."
-                      {...field}
+                    <Textarea 
+                      placeholder="Explain why you're the right person for this job..." 
+                      className="min-h-[120px]" 
+                      {...field} 
                     />
                   </FormControl>
+                  <FormDescription>
+                    Convince the client why you're the best writer for this job.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
-            <DialogFooter className="sm:justify-between">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={bidMutation.isPending}
-              >
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button 
-                type="submit"
-                disabled={bidMutation.isPending}
-              >
-                {bidMutation.isPending ? "Submitting..." : "Submit Bid"}
+              <Button type="submit" disabled={createBidMutation.isPending}>
+                {createBidMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Submit Bid
               </Button>
             </DialogFooter>
           </form>

@@ -1,394 +1,526 @@
-import React, { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
 import { DashboardLayout } from "@/components/ui/dashboard-layout";
-import { StatCard } from "@/components/ui/stat-card";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useState } from "react";
 import { Job, Order, Bid } from "@shared/schema";
-import { Link } from "wouter";
-import { FilePlus, BookOpen, CheckCircle, CreditCard, Clock, User, FileText, DollarSign, Calendar } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Plus, Check, Clock, X } from "lucide-react";
+import { OrderItem } from "@/components/order-item";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+// Form schema for creating a new job
+const jobFormSchema = z.object({
+  title: z.string().min(5, "Title must be at least 5 characters"),
+  description: z.string().min(20, "Description must be at least 20 characters"),
+  category: z.string().min(1, "Please select a category"),
+  budget: z.number().min(10, "Budget must be at least $10"),
+  deadline: z.number().min(1, "Deadline must be at least 1 day"),
+  pages: z.number().optional(),
+});
 
 export default function ClientDashboard() {
-  const [selectedBid, setSelectedBid] = useState<Bid | null>(null);
-  const [viewBidDetails, setViewBidDetails] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [createJobOpen, setCreateJobOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [showBidsDialog, setShowBidsDialog] = useState(false);
 
   // Fetch client stats
-  const { data: clientStats, isLoading: isStatsLoading } = useQuery({
-    queryKey: ["/api/stats/client"],
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ['/api/client/stats'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/client/stats');
+      return response.json();
+    },
+    enabled: !!user
   });
 
-  // Fetch client's active orders
-  const { data: activeOrders, isLoading: isOrdersLoading } = useQuery<Order[]>({
-    queryKey: ["/api/orders"],
-    select: (data) => 
-      data
-        .filter(order => order.status === "in_progress")
-        .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
-        .slice(0, 3)
+  // Fetch client's jobs
+  const { data: myJobs = [], isLoading: jobsLoading } = useQuery({
+    queryKey: ['/api/client/jobs'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/client/jobs');
+      return response.json();
+    },
+    enabled: !!user
   });
 
-  // Fetch client's active jobs with bids
-  const { data: jobs, isLoading: isJobsLoading } = useQuery<Job[]>({
-    queryKey: ["/api/jobs"],
-    select: (data) => 
-      data
-        .filter(job => job.status === "open")
-        .slice(0, 3)
+  // Fetch client's orders
+  const { data: myOrders = [], isLoading: ordersLoading } = useQuery({
+    queryKey: ['/api/client/orders'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/client/orders');
+      return response.json();
+    },
+    enabled: !!user
   });
 
-  // Fetch bids for the client's jobs
-  const { data: bids, isLoading: isBidsLoading } = useQuery<Bid[]>({
-    queryKey: ["/api/bids"],
+  // Fetch bids for a specific job
+  const { data: jobBids = [], isLoading: bidsLoading, refetch: refetchBids } = useQuery({
+    queryKey: ['/api/jobs/bids', selectedJob?.id],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/jobs/${selectedJob?.id}/bids`);
+      return response.json();
+    },
+    enabled: !!selectedJob
   });
 
-  const getBidsForJob = (jobId: number) => {
-    return bids?.filter(bid => bid.jobId === jobId && bid.status === "pending") || [];
+  // Create job mutation
+  const createJobMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof jobFormSchema>) => {
+      const response = await apiRequest('POST', '/api/jobs', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Job Created",
+        description: "Your job posting has been created successfully.",
+      });
+      setCreateJobOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/client/jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/client/stats'] });
+      form.reset();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create job. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Accept bid mutation
+  const acceptBidMutation = useMutation({
+    mutationFn: async (bidId: number) => {
+      const response = await apiRequest('POST', `/api/bids/${bidId}/accept`);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Bid Accepted",
+        description: "You have accepted the bid and created an order.",
+      });
+      setShowBidsDialog(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/client/jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/client/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/client/stats'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to accept bid. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Form for creating a new job
+  const form = useForm<z.infer<typeof jobFormSchema>>({
+    resolver: zodResolver(jobFormSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      category: "",
+      budget: 0,
+      deadline: 7,
+      pages: 0,
+    },
+  });
+
+  const onSubmit = (data: z.infer<typeof jobFormSchema>) => {
+    createJobMutation.mutate(data);
   };
 
-  const handleViewBid = (bid: Bid) => {
-    setSelectedBid(bid);
-    setViewBidDetails(true);
-  };
-
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case "open":
-        return "bg-green-100 text-green-800";
-      case "in_progress":
-        return "bg-blue-100 text-blue-800";
-      case "completed":
-        return "bg-purple-100 text-purple-800";
-      case "cancelled":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+  const handleViewBids = (job: Job) => {
+    setSelectedJob(job);
+    setShowBidsDialog(true);
+    if (selectedJob?.id !== job.id) {
+      setTimeout(() => refetchBids(), 0);
     }
   };
 
-  const formatStatus = (status: string) => {
-    return status.replace("_", " ").replace(/\b\w/g, char => char.toUpperCase());
+  const handleAcceptBid = (bid: Bid) => {
+    acceptBidMutation.mutate(bid.id);
+  };
+
+  const handleViewOrderDetails = (order: Order) => {
+    // Implement order detail view
   };
 
   return (
     <DashboardLayout>
-      <div className="py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <h1 className="text-2xl font-semibold text-gray-900">Client Dashboard</h1>
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Client Dashboard</h1>
+            <p className="text-muted-foreground">
+              Welcome back, {user?.fullName || user?.username}
+            </p>
+          </div>
+          <Button onClick={() => setCreateJobOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Post New Job
+          </Button>
+        </div>
+
+        {/* Stats Overview */}
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Posted Jobs</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.postedJobs || 0}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Active Orders</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.activeOrders || 0}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Completed Orders</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.completedOrders || 0}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">${stats?.totalSpent || 0}</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content */}
+        <Tabs defaultValue="my-jobs" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="my-jobs">My Jobs</TabsTrigger>
+            <TabsTrigger value="active-orders">Active Orders</TabsTrigger>
+            <TabsTrigger value="completed-orders">Completed Orders</TabsTrigger>
+          </TabsList>
           
-          {/* Stats overview */}
-          {isStatsLoading ? (
-            <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {[1, 2, 3, 4].map((item) => (
-                <div key={item} className="bg-white overflow-hidden shadow rounded-lg p-5 animate-pulse">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 bg-gray-200 rounded-md p-3 h-12 w-12"></div>
-                    <div className="ml-5 w-0 flex-1">
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                      <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+          {/* My Jobs Tab */}
+          <TabsContent value="my-jobs" className="space-y-4">
+            <div className="rounded-md border">
+              {jobsLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : myJobs.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">You haven't posted any jobs yet.</p>
+                  <Button variant="outline" className="mt-4" onClick={() => setCreateJobOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Post Your First Job
+                  </Button>
+                </div>
+              ) : (
+                <div className="relative w-full overflow-auto">
+                  <table className="w-full caption-bottom text-sm">
+                    <thead className="[&_tr]:border-b">
+                      <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                        <th className="h-12 px-4 text-left align-middle font-medium">Title</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium">Budget</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium">Status</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium">Created</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="[&_tr:last-child]:border-0">
+                      {myJobs.map((job: Job) => (
+                        <tr key={job.id} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                          <td className="p-4 align-middle font-medium">{job.title}</td>
+                          <td className="p-4 align-middle">${job.budget}</td>
+                          <td className="p-4 align-middle">
+                            <Badge variant={
+                              job.status === 'in_progress' ? 'default' :
+                              job.status === 'completed' ? 'default' :
+                              job.status === 'cancelled' ? 'destructive' :
+                              'outline'
+                            }>
+                              {job.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                            </Badge>
+                          </td>
+                          <td className="p-4 align-middle">{new Date(job.createdAt).toLocaleDateString()}</td>
+                          <td className="p-4 align-middle">
+                            {job.status === 'open' && (
+                              <Button variant="outline" size="sm" onClick={() => handleViewBids(job)}>
+                                View Bids
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+          
+          {/* Active Orders Tab */}
+          <TabsContent value="active-orders" className="space-y-4">
+            <div className="space-y-4">
+              {ordersLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                myOrders
+                  .filter((order: Order) => order.status === 'in_progress' || order.status === 'revision')
+                  .map((order: Order) => (
+                    <OrderItem
+                      key={order.id}
+                      order={order}
+                      onViewDetails={() => handleViewOrderDetails(order)}
+                    />
+                  ))
+              )}
+              {!ordersLoading && myOrders.filter((order: Order) => order.status === 'in_progress' || order.status === 'revision').length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">You don't have any active orders at the moment.</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+          
+          {/* Completed Orders Tab */}
+          <TabsContent value="completed-orders" className="space-y-4">
+            <div className="space-y-4">
+              {ordersLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                myOrders
+                  .filter((order: Order) => order.status === 'completed')
+                  .map((order: Order) => (
+                    <OrderItem
+                      key={order.id}
+                      order={order}
+                      onViewDetails={() => handleViewOrderDetails(order)}
+                    />
+                  ))
+              )}
+              {!ordersLoading && myOrders.filter((order: Order) => order.status === 'completed').length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">You don't have any completed orders yet.</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Create Job Dialog */}
+      <Dialog open={createJobOpen} onOpenChange={setCreateJobOpen}>
+        <DialogContent className="sm:max-w-[525px]">
+          <DialogHeader>
+            <DialogTitle>Post a New Job</DialogTitle>
+            <DialogDescription>
+              Fill in the details of your writing job to attract qualified writers.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Job Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Website Content for E-commerce Store" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Describe what you need in detail..." {...field} className="min-h-[100px]" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="blog">Blog Posts</SelectItem>
+                          <SelectItem value="website">Website Content</SelectItem>
+                          <SelectItem value="technical">Technical Writing</SelectItem>
+                          <SelectItem value="social">Social Media</SelectItem>
+                          <SelectItem value="marketing">Marketing</SelectItem>
+                          <SelectItem value="creative">Creative Writing</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="budget"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Budget ($)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min="10" 
+                          placeholder="100" 
+                          {...field} 
+                          onChange={e => field.onChange(parseFloat(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="deadline"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Deadline (Days)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min="1" 
+                          placeholder="7" 
+                          {...field} 
+                          onChange={e => field.onChange(parseInt(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="pages"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pages (Optional)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min="0" 
+                          placeholder="5" 
+                          {...field} 
+                          onChange={e => field.onChange(parseInt(e.target.value) || undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={createJobMutation.isPending}>
+                  {createJobMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Post Job
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Bids Dialog */}
+      <Dialog open={showBidsDialog} onOpenChange={setShowBidsDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Bids for {selectedJob?.title}</DialogTitle>
+            <DialogDescription>
+              Review and accept bids from writers for your job.
+            </DialogDescription>
+          </DialogHeader>
+          {bidsLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : jobBids.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No bids received yet. Check back later!</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {jobBids.map((bid: any) => (
+                <div key={bid.id} className="p-4 border rounded-lg">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 className="font-medium">{bid.writer.fullName || bid.writer.username}</h3>
+                      <p className="text-sm text-muted-foreground">${bid.amount} • {bid.deliveryTime} days</p>
                     </div>
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleAcceptBid(bid)}
+                      disabled={acceptBidMutation.isPending}
+                    >
+                      {acceptBidMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Accept Bid
+                    </Button>
+                  </div>
+                  <div className="text-sm mt-2">
+                    <h4 className="font-medium mb-1">Cover Letter:</h4>
+                    <p>{bid.coverLetter}</p>
                   </div>
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard
-                title="Posted Jobs"
-                value={clientStats?.postedJobs || 0}
-                icon={<FilePlus />}
-                iconBgColor="bg-blue-100"
-                iconColor="text-blue-600"
-                actionText="Post new job"
-                actionHref="/client/post-job"
-              />
-              
-              <StatCard
-                title="Active Orders"
-                value={clientStats?.activeOrders || 0}
-                icon={<BookOpen />}
-                iconBgColor="bg-yellow-100"
-                iconColor="text-yellow-600"
-                actionText="Manage orders"
-                actionHref="/client/manage-orders"
-              />
-              
-              <StatCard
-                title="Completed Orders"
-                value={clientStats?.completedOrders || 0}
-                icon={<CheckCircle />}
-                iconBgColor="bg-green-100"
-                iconColor="text-green-600"
-                actionText="View history"
-                actionHref="/client/manage-orders?tab=completed"
-              />
-              
-              <StatCard
-                title="Total Spent"
-                value={`$${clientStats?.totalSpent.toFixed(2) || "0.00"}`}
-                icon={<CreditCard />}
-                iconBgColor="bg-purple-100"
-                iconColor="text-purple-600"
-                actionText="Payment history"
-                actionHref="/client/manage-orders?tab=completed"
-              />
-            </div>
           )}
-          
-          {/* Active Orders and Open Jobs */}
-          <div className="mt-8">
-            <Tabs defaultValue="orders">
-              <TabsList>
-                <TabsTrigger value="orders">Active Orders</TabsTrigger>
-                <TabsTrigger value="jobs">Open Jobs</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="orders" className="mt-4">
-                {isOrdersLoading ? (
-                  <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-                    {[1, 2].map((item) => (
-                      <Card key={item} className="animate-pulse">
-                        <CardHeader className="pb-2">
-                          <div className="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>
-                          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-3">
-                            <div className="h-4 bg-gray-200 rounded w-full"></div>
-                            <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : activeOrders && activeOrders.length > 0 ? (
-                  <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-                    {activeOrders.map(order => (
-                      <Card key={order.id}>
-                        <CardHeader className="pb-2">
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg">Order #{order.id}</CardTitle>
-                            <Badge className={getStatusBadgeColor(order.status)}>
-                              {formatStatus(order.status)}
-                            </Badge>
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            Due: {format(new Date(order.deadline), "MMM d, yyyy")}
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center">
-                                <User className="h-4 w-4 text-gray-400 mr-2" />
-                                <span className="text-sm">Writer ID: {order.writerId}</span>
-                              </div>
-                              <div className="flex items-center">
-                                <DollarSign className="h-4 w-4 text-gray-400 mr-1" />
-                                <span className="text-sm">${order.amount.toFixed(2)}</span>
-                              </div>
-                            </div>
-                            <Button 
-                              variant="outline"
-                              size="sm"
-                              className="w-full"
-                              asChild
-                            >
-                              <Link href={`/client/manage-orders?id=${order.id}`}>
-                                View Details
-                              </Link>
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-white shadow rounded-lg p-8 text-center">
-                    <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No active orders</h3>
-                    <p className="text-gray-500 mb-4">
-                      You don't have any active orders at the moment.
-                    </p>
-                    <Button asChild>
-                      <Link href="/client/post-job">Post a New Job</Link>
-                    </Button>
-                  </div>
-                )}
-                {activeOrders && activeOrders.length > 0 && (
-                  <div className="mt-4 text-center">
-                    <Button variant="outline" asChild>
-                      <Link href="/client/manage-orders">View All Orders</Link>
-                    </Button>
-                  </div>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="jobs" className="mt-4">
-                {isJobsLoading || isBidsLoading ? (
-                  <div className="grid gap-4 grid-cols-1">
-                    {[1, 2].map((item) => (
-                      <Card key={item} className="animate-pulse">
-                        <CardHeader className="pb-2">
-                          <div className="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>
-                          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-3">
-                            <div className="h-4 bg-gray-200 rounded w-full"></div>
-                            <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-                            <div className="h-10 bg-gray-200 rounded w-full"></div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : jobs && jobs.length > 0 ? (
-                  <div className="grid gap-4 grid-cols-1">
-                    {jobs.map(job => {
-                      const jobBids = getBidsForJob(job.id);
-                      return (
-                        <Card key={job.id}>
-                          <CardHeader>
-                            <div className="flex items-center justify-between">
-                              <CardTitle className="text-lg">{job.title}</CardTitle>
-                              <Badge className={getStatusBadgeColor(job.status)}>
-                                {formatStatus(job.status)}
-                              </Badge>
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              Posted {formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })}
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            <p className="text-sm text-gray-600 mb-4">{job.description}</p>
-                            <div className="grid grid-cols-2 gap-4 mb-4">
-                              <div className="flex items-center">
-                                <FileText className="h-4 w-4 text-gray-400 mr-2" />
-                                <span className="text-sm">{job.pages} pages</span>
-                              </div>
-                              <div className="flex items-center">
-                                <Clock className="h-4 w-4 text-gray-400 mr-2" />
-                                <span className="text-sm">{job.deadline} days</span>
-                              </div>
-                              <div className="flex items-center">
-                                <DollarSign className="h-4 w-4 text-gray-400 mr-2" />
-                                <span className="text-sm">Budget: ${job.budget}</span>
-                              </div>
-                              <div className="flex items-center">
-                                <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                                <span className="text-sm">{jobBids.length} bids</span>
-                              </div>
-                            </div>
-                            
-                            {jobBids.length > 0 ? (
-                              <div className="space-y-3">
-                                <h4 className="text-sm font-medium">Recent Bids</h4>
-                                <div className="space-y-2">
-                                  {jobBids.slice(0, 2).map(bid => (
-                                    <div key={bid.id} className="flex items-center justify-between border p-2 rounded-md">
-                                      <div>
-                                        <div className="text-sm font-medium">Writer #{bid.writerId}</div>
-                                        <div className="text-xs text-gray-500">${bid.amount} • {bid.deliveryTime} days</div>
-                                      </div>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleViewBid(bid)}
-                                      >
-                                        View
-                                      </Button>
-                                    </div>
-                                  ))}
-                                </div>
-                                {jobBids.length > 2 && (
-                                  <div className="text-center">
-                                    <Button variant="link" size="sm" asChild>
-                                      <Link href={`/client/manage-orders?job=${job.id}`}>
-                                        View all {jobBids.length} bids
-                                      </Link>
-                                    </Button>
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="text-sm text-gray-500 italic">No bids yet</div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="bg-white shadow rounded-lg p-8 text-center">
-                    <FilePlus className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No open jobs</h3>
-                    <p className="text-gray-500 mb-4">
-                      You don't have any open jobs at the moment.
-                    </p>
-                    <Button asChild>
-                      <Link href="/client/post-job">Post a New Job</Link>
-                    </Button>
-                  </div>
-                )}
-                {jobs && jobs.length > 0 && (
-                  <div className="mt-4 text-center">
-                    <Button variant="outline" asChild>
-                      <Link href="/client/post-job">Post a New Job</Link>
-                    </Button>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
-      </div>
-      
-      {/* Bid Details Dialog */}
-      {selectedBid && (
-        <Dialog open={viewBidDetails} onOpenChange={setViewBidDetails}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Bid Details</DialogTitle>
-              <DialogDescription>
-                Bid from Writer #{selectedBid.writerId}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500">Bid Amount</h4>
-                  <p className="text-base">${selectedBid.amount}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500">Delivery Time</h4>
-                  <p className="text-base">{selectedBid.deliveryTime} days</p>
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="text-sm font-medium text-gray-500">Cover Letter</h4>
-                <p className="text-sm whitespace-pre-wrap mt-1">{selectedBid.coverLetter}</p>
-              </div>
-            </div>
-            
-            <DialogFooter className="space-x-2">
-              <Button variant="outline" onClick={() => setViewBidDetails(false)}>
-                Close
-              </Button>
-              <Button asChild>
-                <Link href={`/client/manage-orders?job=${selectedBid.jobId}&bid=${selectedBid.id}`}>
-                  Accept Bid
-                </Link>
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

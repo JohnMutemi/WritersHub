@@ -40,7 +40,15 @@ export default function AuthPage() {
   // Redirect if user is already logged in
   useEffect(() => {
     if (user && !isLoading) {
-      navigate("/");
+      if (user.role === 'writer') {
+        navigate("/writer");
+      } else if (user.role === 'client') {
+        navigate("/client");
+      } else if (user.role === 'admin') {
+        navigate("/admin");
+      } else {
+        navigate("/");
+      }
     }
   }, [user, isLoading, navigate]);
 
@@ -67,16 +75,30 @@ export default function AuthPage() {
 
   const onLoginSubmit = (values: LoginFormValues) => {
     loginMutation.mutate(values, {
-      onSuccess: () => {
-        navigate("/");
+      onSuccess: (user) => {
+        if (user.role === 'writer') {
+          navigate("/writer");
+        } else if (user.role === 'client') {
+          navigate("/client");
+        } else if (user.role === 'admin') {
+          navigate("/admin");
+        } else {
+          navigate("/");
+        }
       },
     });
   };
 
   const onRegisterSubmit = (values: RegisterFormValues) => {
     registerMutation.mutate(values, {
-      onSuccess: () => {
-        navigate("/");
+      onSuccess: (user) => {
+        if (user.role === 'writer') {
+          navigate("/writer");
+        } else if (user.role === 'client') {
+          navigate("/client");
+        } else {
+          navigate("/");
+        }
       },
     });
   };

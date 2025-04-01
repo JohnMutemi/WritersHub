@@ -1,126 +1,79 @@
-import React, { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAuth } from "@/hooks/use-auth";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Loader2 } from "lucide-react";
 
 interface WithdrawModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-// Validation schema for withdrawal
 const withdrawalSchema = z.object({
-  amount: z.number().min(1, "Amount must be at least $1"),
-  paymentMethod: z.enum(["paypal", "mpesa", "bank_transfer"], {
+  amount: z.coerce.number().min(10, "Withdrawal amount must be at least $10"),
+  method: z.enum(["paypal", "bank_transfer", "mpesa"], {
     required_error: "Please select a payment method",
   }),
-  paymentDetails: z.record(z.string()),
+  accountDetails: z.string().min(5, "Please provide valid account details"),
 });
 
 type WithdrawalFormValues = z.infer<typeof withdrawalSchema>;
 
 export function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
-  const { user } = useAuth();
   const { toast } = useToast();
-  const [selectedMethod, setSelectedMethod] = useState<string>("paypal");
   
   const form = useForm<WithdrawalFormValues>({
     resolver: zodResolver(withdrawalSchema),
     defaultValues: {
-      amount: 0,
-      paymentMethod: "paypal",
-      paymentDetails: {},
+      amount: 50,
+      method: "paypal",
+      accountDetails: "",
     },
   });
-  
+
   const withdrawMutation = useMutation({
     mutationFn: async (values: WithdrawalFormValues) => {
-      let paymentDetails: Record<string, string> = {};
-      
-      // Build payment details based on method
-      if (values.paymentMethod === "paypal") {
-        paymentDetails = {
-          email: form.getValues("paymentDetails.email") || "",
-        };
-      } else if (values.paymentMethod === "mpesa") {
-        paymentDetails = {
-          phoneNumber: form.getValues("paymentDetails.phoneNumber") || "",
-        };
-      } else if (values.paymentMethod === "bank_transfer") {
-        paymentDetails = {
-          accountName: form.getValues("paymentDetails.accountName") || "",
-          accountNumber: form.getValues("paymentDetails.accountNumber") || "",
-          bankName: form.getValues("paymentDetails.bankName") || "",
-        };
-      }
-      
-      const data = {
-        amount: values.amount,
-        paymentMethod: values.paymentMethod,
-        paymentDetails,
-      };
-      
-      const response = await apiRequest("POST", "/api/withdrawals", data);
-      return await response.json();
+      const response = await apiRequest('POST', '/api/transactions/withdraw', values);
+      return response.json();
     },
     onSuccess: () => {
       toast({
-        title: "Withdrawal request submitted",
-        description: "Your withdrawal request has been submitted and is being processed",
+        title: "Withdrawal Requested",
+        description: "Your withdrawal has been submitted and is pending approval.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       onClose();
+      queryClient.invalidateQueries({ queryKey: ['/api/writer/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to submit withdrawal",
-        description: error.message,
+        title: "Error",
+        description: error.message || "Failed to process withdrawal. Please try again.",
         variant: "destructive",
       });
-    },
+    }
   });
 
-  const handlePaymentMethodChange = (value: string) => {
-    setSelectedMethod(value);
-    form.setValue("paymentMethod", value as any);
-  };
-
   const onSubmit = (values: WithdrawalFormValues) => {
-    if (!user) return;
-    
-    // Check if amount is greater than available balance
-    if (values.amount > user.balance) {
-      toast({
-        title: "Insufficient balance",
-        description: `You can only withdraw up to $${user.balance.toFixed(2)}`,
-        variant: "destructive",
-      });
-      return;
-    }
-    
     withdrawMutation.mutate(values);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Withdraw Funds</DialogTitle>
           <DialogDescription>
-            Available balance: <span className="font-medium">${user?.balance.toFixed(2)}</span>
+            Request a withdrawal of your earnings to your preferred payment method.
           </DialogDescription>
         </DialogHeader>
-        
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -128,31 +81,30 @@ export function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Amount to Withdraw ($)</FormLabel>
+                  <FormLabel>Amount ($)</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Enter amount"
-                      step="0.01"
-                      {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                    <Input 
+                      type="number" 
+                      min={10} 
+                      step={1} 
+                      {...field} 
+                      onChange={e => field.onChange(parseFloat(e.target.value))}
                     />
                   </FormControl>
+                  <FormDescription>
+                    Minimum withdrawal amount is $10
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
             <FormField
               control={form.control}
-              name="paymentMethod"
+              name="method"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Payment Method</FormLabel>
-                  <Select
-                    onValueChange={handlePaymentMethodChange}
-                    defaultValue={field.value}
-                  >
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select payment method" />
@@ -160,92 +112,42 @@ export function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="paypal">PayPal</SelectItem>
-                      <SelectItem value="mpesa">M-Pesa</SelectItem>
                       <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                      <SelectItem value="mpesa">M-Pesa</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
-            {/* PayPal Fields */}
-            {selectedMethod === "paypal" && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="paypal-email">PayPal Email</Label>
-                  <Input
-                    id="paypal-email"
-                    type="email"
-                    placeholder="Enter PayPal email"
-                    {...form.register("paymentDetails.email")}
-                  />
-                </div>
-              </div>
-            )}
-            
-            {/* M-Pesa Fields */}
-            {selectedMethod === "mpesa" && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phone-number">Phone Number</Label>
-                  <Input
-                    id="phone-number"
-                    type="text"
-                    placeholder="Enter phone number"
-                    {...form.register("paymentDetails.phoneNumber")}
-                  />
-                </div>
-              </div>
-            )}
-            
-            {/* Bank Transfer Fields */}
-            {selectedMethod === "bank_transfer" && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="account-name">Account Name</Label>
-                  <Input
-                    id="account-name"
-                    type="text"
-                    placeholder="Enter account name"
-                    {...form.register("paymentDetails.accountName")}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="account-number">Account Number</Label>
-                  <Input
-                    id="account-number"
-                    type="text"
-                    placeholder="Enter account number"
-                    {...form.register("paymentDetails.accountNumber")}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bank-name">Bank Name</Label>
-                  <Input
-                    id="bank-name"
-                    type="text"
-                    placeholder="Enter bank name"
-                    {...form.register("paymentDetails.bankName")}
-                  />
-                </div>
-              </div>
-            )}
-            
-            <DialogFooter className="sm:justify-between">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={withdrawMutation.isPending}
-              >
+            <FormField
+              control={form.control}
+              name="accountDetails"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Account Details</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder={form.watch("method") === "paypal" ? "PayPal email address" : 
+                                form.watch("method") === "mpesa" ? "Phone number" : 
+                                "Bank account details"} 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Enter the details for your selected payment method
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button 
-                type="submit"
-                disabled={withdrawMutation.isPending}
-              >
-                {withdrawMutation.isPending ? "Processing..." : "Withdraw"}
+              <Button type="submit" disabled={withdrawMutation.isPending}>
+                {withdrawMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Request Withdrawal
               </Button>
             </DialogFooter>
           </form>
