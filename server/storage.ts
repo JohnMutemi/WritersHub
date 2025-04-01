@@ -14,9 +14,11 @@ import type {
   InsertWriterQuiz
 } from "@shared/schema";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { db, pool } from "./db";
+import { eq, and, desc, asc } from "drizzle-orm";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresStore = connectPg(session);
 
 // Stats interfaces
 interface WriterStats {
@@ -92,86 +94,71 @@ export interface IStorage {
   sessionStore: any; // Use any type for sessionStore
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private jobs: Map<number, Job>;
-  private bids: Map<number, Bid>;
-  private orders: Map<number, Order>;
-  private transactions: Map<number, Transaction>;
-  private writerQuizzes: Map<number, WriterQuiz>;
+export class DatabaseStorage implements IStorage {
   sessionStore: any;
-  
-  private userIdCounter: number = 1;
-  private jobIdCounter: number = 1;
-  private bidIdCounter: number = 1;
-  private orderIdCounter: number = 1;
-  private transactionIdCounter: number = 1;
-  private quizIdCounter: number = 1;
 
   constructor() {
-    this.users = new Map();
-    this.jobs = new Map();
-    this.bids = new Map();
-    this.orders = new Map();
-    this.transactions = new Map();
-    this.writerQuizzes = new Map();
-    
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000 // 24 hours
+    this.sessionStore = new PostgresStore({
+      pool,
+      createTableIfMissing: true
     });
     
-    // Create admin user
-    this.createUser({
-      username: "admin",
-      password: "$scrypt$N=32768,r=8,p=1,maxmem=67108864$c3R4M0AzUU5xcXphNVBCTW4xRlE2RmZiWE00MS9lRlVvL0ZoUkR0cVhsVT0=$L86+twYfb+6ME0W5VP/XXpnKG6pHUxEmjOC3PJK4eIg=", // password = "adminpass"
-      email: "admin@sharpquill.com",
-      fullName: "Admin User",
-      role: "admin",
-      bio: "System administrator",
-      profileImage: null
+    // Try to create admin user if not exists
+    this.getUserByUsername("admin").then(user => {
+      if (!user) {
+        this.createUser({
+          username: "admin",
+          password: "$scrypt$N=32768,r=8,p=1,maxmem=67108864$c3R4M0AzUU5xcXphNVBCTW4xRlE2RmZiWE00MS9lRlVvL0ZoUkR0cVhsVT0=$L86+twYfb+6ME0W5VP/XXpnKG6pHUxEmjOC3PJK4eIg=", // password = "adminpass"
+          email: "admin@sharpquill.com",
+          fullName: "Admin User",
+          role: "admin",
+          bio: "System administrator",
+          profileImage: null
+        });
+      }
     });
   }
 
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const result = await db.select().from(users).where(eq(users.id, id));
+    return result[0];
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username.toLowerCase() === username.toLowerCase(),
-    );
+    const result = await db.select().from(users).where(eq(users.username, username));
+    return result[0];
   }
   
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.email.toLowerCase() === email.toLowerCase(),
-    );
+    const result = await db.select().from(users).where(eq(users.email, email));
+    return result[0];
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userIdCounter++;
-    const now = new Date();
-    const user: User = { 
-      ...insertUser, 
-      id,
+    // Ensure role is not undefined
+    const role = insertUser.role || 'writer';
+    
+    const result = await db.insert(users).values({
+      ...insertUser,
+      role, // Explicitly set role to avoid undefined
       balance: 0,
-      approvalStatus: insertUser.role === 'writer' ? 'pending' : 'approved',
-      createdAt: now
-    };
-    this.users.set(id, user);
-    return user;
+      approvalStatus: role === 'writer' ? 'pending' : 'approved'
+    }).returning();
+    return result[0];
   }
   
   async updateUser(id: number, userData: Partial<User>): Promise<User> {
-    const user = await this.getUser(id);
-    if (!user) {
+    const result = await db.update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+    
+    if (result.length === 0) {
       throw new Error("User not found");
     }
     
-    const updatedUser = { ...user, ...userData };
-    this.users.set(id, updatedUser);
-    return updatedUser;
+    return result[0];
   }
   
   async updateUserBalance(id: number, amount: number): Promise<User> {
@@ -180,209 +167,209 @@ export class MemStorage implements IStorage {
       throw new Error("User not found");
     }
     
-    const updatedUser = { 
-      ...user, 
-      balance: user.balance + amount 
-    };
-    this.users.set(id, updatedUser);
-    return updatedUser;
+    const result = await db.update(users)
+      .set({ balance: user.balance + amount })
+      .where(eq(users.id, id))
+      .returning();
+    
+    return result[0];
   }
   
   async updateWriterApprovalStatus(id: number, status: 'approved' | 'rejected'): Promise<User> {
-    const user = await this.getUser(id);
-    if (!user) {
+    const result = await db.update(users)
+      .set({ approvalStatus: status })
+      .where(eq(users.id, id))
+      .returning();
+    
+    if (result.length === 0) {
       throw new Error("User not found");
     }
     
-    const updatedUser = { 
-      ...user, 
-      approvalStatus: status 
-    };
-    this.users.set(id, updatedUser);
-    return updatedUser;
+    return result[0];
   }
   
   // Job methods
   async getJobs(): Promise<Job[]> {
-    return Array.from(this.jobs.values());
+    return await db.select().from(jobs);
   }
   
   async getJob(id: number): Promise<Job | undefined> {
-    return this.jobs.get(id);
+    const result = await db.select().from(jobs).where(eq(jobs.id, id));
+    return result[0];
   }
   
   async createJob(job: InsertJob): Promise<Job> {
-    const id = this.jobIdCounter++;
-    const now = new Date();
-    const newJob: Job = {
+    const result = await db.insert(jobs).values({
       ...job,
-      id,
-      status: 'open',
-      createdAt: now
-    };
-    this.jobs.set(id, newJob);
-    return newJob;
+      status: 'open'
+    }).returning();
+    return result[0];
   }
   
   async updateJobStatus(id: number, status: 'open' | 'in_progress' | 'completed' | 'cancelled'): Promise<Job> {
-    const job = await this.getJob(id);
-    if (!job) {
+    const result = await db.update(jobs)
+      .set({ status })
+      .where(eq(jobs.id, id))
+      .returning();
+    
+    if (result.length === 0) {
       throw new Error("Job not found");
     }
     
-    const updatedJob = { 
-      ...job, 
-      status
-    };
-    this.jobs.set(id, updatedJob);
-    return updatedJob;
+    return result[0];
   }
   
   // Bid methods
   async getAllBids(): Promise<Bid[]> {
-    return Array.from(this.bids.values());
+    return await db.select().from(bids);
   }
   
   async getBid(id: number): Promise<Bid | undefined> {
-    return this.bids.get(id);
+    const result = await db.select().from(bids).where(eq(bids.id, id));
+    return result[0];
   }
   
   async getBidsByJob(jobId: number): Promise<Bid[]> {
-    return Array.from(this.bids.values()).filter(bid => bid.jobId === jobId);
+    return await db.select().from(bids).where(eq(bids.jobId, jobId));
   }
   
   async getBidsByWriter(writerId: number): Promise<Bid[]> {
-    return Array.from(this.bids.values()).filter(bid => bid.writerId === writerId);
+    return await db.select().from(bids).where(eq(bids.writerId, writerId));
   }
   
   async getBidsByClient(clientId: number): Promise<Bid[]> {
-    // Get all jobs by this client
-    const clientJobs = Array.from(this.jobs.values()).filter(job => job.clientId === clientId);
-    const clientJobIds = clientJobs.map(job => job.id);
+    // Get all jobs by this client first
+    const clientJobs = await db.select().from(jobs).where(eq(jobs.clientId, clientId));
     
-    // Get all bids for these jobs
-    return Array.from(this.bids.values()).filter(bid => clientJobIds.includes(bid.jobId));
+    if (clientJobs.length === 0) {
+      return [];
+    }
+    
+    // For each job, get the bids separately and merge them
+    const allBids: Bid[] = [];
+    
+    for (const job of clientJobs) {
+      const jobBids = await db.select().from(bids).where(eq(bids.jobId, job.id));
+      allBids.push(...jobBids);
+    }
+    
+    return allBids;
   }
   
   async createBid(bid: InsertBid): Promise<Bid> {
-    const id = this.bidIdCounter++;
-    const now = new Date();
-    const newBid: Bid = {
+    const result = await db.insert(bids).values({
       ...bid,
-      id,
-      status: 'pending',
-      createdAt: now
-    };
-    this.bids.set(id, newBid);
-    return newBid;
+      status: 'pending'
+    }).returning();
+    return result[0];
   }
   
   async updateBidStatus(id: number, status: 'pending' | 'accepted' | 'rejected'): Promise<Bid> {
-    const bid = await this.getBid(id);
-    if (!bid) {
+    const result = await db.update(bids)
+      .set({ status })
+      .where(eq(bids.id, id))
+      .returning();
+    
+    if (result.length === 0) {
       throw new Error("Bid not found");
     }
     
-    const updatedBid = { 
-      ...bid, 
-      status
-    };
-    this.bids.set(id, updatedBid);
-    return updatedBid;
+    return result[0];
   }
   
   async rejectOtherBids(jobId: number, acceptedBidId: number): Promise<void> {
-    const bids = await this.getBidsByJob(jobId);
+    // Get all pending bids for this job
+    const pendingBids = await db.select()
+      .from(bids)
+      .where(
+        and(
+          eq(bids.jobId, jobId),
+          eq(bids.status, 'pending')
+        )
+      );
     
-    for (const bid of bids) {
-      if (bid.id !== acceptedBidId && bid.status === 'pending') {
-        await this.updateBidStatus(bid.id, 'rejected');
+    // Filter out the accepted bid and update the rest
+    for (const bid of pendingBids) {
+      // Make sure we compare bid.id as a number
+      const bidId = Number(bid.id);
+      if (bidId !== acceptedBidId) {
+        await db.update(bids)
+          .set({ status: 'rejected' })
+          .where(eq(bids.id, bidId));
       }
     }
   }
   
   // Order methods
   async getAllOrders(): Promise<Order[]> {
-    return Array.from(this.orders.values());
+    return await db.select().from(orders);
   }
   
   async getOrder(id: number): Promise<Order | undefined> {
-    return this.orders.get(id);
+    const result = await db.select().from(orders).where(eq(orders.id, id));
+    return result[0];
   }
   
   async getOrdersByWriter(writerId: number): Promise<Order[]> {
-    return Array.from(this.orders.values()).filter(order => order.writerId === writerId);
+    return await db.select().from(orders).where(eq(orders.writerId, writerId));
   }
   
   async getOrdersByClient(clientId: number): Promise<Order[]> {
-    return Array.from(this.orders.values()).filter(order => order.clientId === clientId);
+    return await db.select().from(orders).where(eq(orders.clientId, clientId));
   }
   
   async createOrder(order: InsertOrder): Promise<Order> {
-    const id = this.orderIdCounter++;
-    const now = new Date();
-    const newOrder: Order = {
+    const result = await db.insert(orders).values({
       ...order,
-      id,
       status: 'in_progress',
-      completedAt: null,
-      createdAt: now
-    };
-    this.orders.set(id, newOrder);
-    return newOrder;
+      completedAt: null
+    }).returning();
+    return result[0];
   }
   
   async updateOrderStatus(id: number, status: 'in_progress' | 'revision' | 'completed' | 'cancelled'): Promise<Order> {
-    const order = await this.getOrder(id);
-    if (!order) {
+    const updateData: any = { status };
+    
+    if (status === 'completed') {
+      updateData.completedAt = new Date();
+    }
+    
+    const result = await db.update(orders)
+      .set(updateData)
+      .where(eq(orders.id, id))
+      .returning();
+    
+    if (result.length === 0) {
       throw new Error("Order not found");
     }
     
-    const updatedOrder: Order = { 
-      ...order, 
-      status,
-      completedAt: status === 'completed' ? new Date() : order.completedAt
-    };
-    this.orders.set(id, updatedOrder);
-    return updatedOrder;
+    return result[0];
   }
   
   // Transaction methods
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
-    const id = this.transactionIdCounter++;
-    const now = new Date();
-    const newTransaction: Transaction = {
-      ...transaction,
-      id,
-      createdAt: now
-    };
-    this.transactions.set(id, newTransaction);
-    return newTransaction;
+    const result = await db.insert(transactions).values(transaction).returning();
+    return result[0];
   }
   
   async getUserTransactions(userId: number): Promise<Transaction[]> {
-    return Array.from(this.transactions.values()).filter(
-      transaction => transaction.userId === userId
-    );
+    return await db.select()
+      .from(transactions)
+      .where(eq(transactions.userId, userId))
+      .orderBy(desc(transactions.createdAt));
   }
   
   // Writer quiz methods
   async submitWriterQuiz(quiz: InsertWriterQuiz): Promise<WriterQuiz> {
-    const id = this.quizIdCounter++;
-    const now = new Date();
-    const newQuiz: WriterQuiz = {
-      ...quiz,
-      id,
-      submittedAt: now
-    };
-    this.writerQuizzes.set(id, newQuiz);
-    return newQuiz;
+    const result = await db.insert(writerQuizzes).values(quiz).returning();
+    return result[0];
   }
   
   async getWriterQuiz(writerId: number): Promise<WriterQuiz | undefined> {
-    return Array.from(this.writerQuizzes.values()).find(
-      quiz => quiz.writerId === writerId
-    );
+    const result = await db.select()
+      .from(writerQuizzes)
+      .where(eq(writerQuizzes.writerId, writerId));
+    return result[0];
   }
   
   // Stats methods
@@ -392,13 +379,37 @@ export class MemStorage implements IStorage {
       throw new Error("Writer not found");
     }
     
-    const pendingBids = (await this.getBidsByWriter(writerId)).filter(
-      bid => bid.status === 'pending'
-    ).length;
+    // Get pending bids
+    const pendingBidsResult = await db.select({ count: bids.id })
+      .from(bids)
+      .where(
+        and(
+          eq(bids.writerId, writerId),
+          eq(bids.status, 'pending')
+        )
+      );
+    const pendingBids = pendingBidsResult[0]?.count || 0;
     
-    const orders = await this.getOrdersByWriter(writerId);
-    const activeOrders = orders.filter(order => order.status === 'in_progress').length;
-    const completedOrders = orders.filter(order => order.status === 'completed').length;
+    // Get active and completed orders
+    const activeOrdersResult = await db.select({ count: orders.id })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.writerId, writerId),
+          eq(orders.status, 'in_progress')
+        )
+      );
+    const activeOrders = activeOrdersResult[0]?.count || 0;
+    
+    const completedOrdersResult = await db.select({ count: orders.id })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.writerId, writerId),
+          eq(orders.status, 'completed')
+        )
+      );
+    const completedOrders = completedOrdersResult[0]?.count || 0;
     
     return {
       balance: writer.balance,
@@ -414,16 +425,47 @@ export class MemStorage implements IStorage {
       throw new Error("Client not found");
     }
     
-    const postedJobs = Array.from(this.jobs.values()).filter(
-      job => job.clientId === clientId
-    ).length;
+    // Get posted jobs count
+    const postedJobsResult = await db.select({ count: jobs.id })
+      .from(jobs)
+      .where(eq(jobs.clientId, clientId));
+    const postedJobs = postedJobsResult[0]?.count || 0;
     
-    const orders = await this.getOrdersByClient(clientId);
-    const activeOrders = orders.filter(order => order.status === 'in_progress').length;
-    const completedOrders = orders.filter(order => order.status === 'completed').length;
+    // Get active orders
+    const activeOrdersResult = await db.select({ count: orders.id })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.clientId, clientId),
+          eq(orders.status, 'in_progress')
+        )
+      );
+    const activeOrders = activeOrdersResult[0]?.count || 0;
     
-    const completedOrdersArray = orders.filter(order => order.status === 'completed');
-    const totalSpent = completedOrdersArray.reduce((sum, order) => sum + order.amount, 0);
+    // Get completed orders
+    const completedOrdersResult = await db.select({ count: orders.id })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.clientId, clientId),
+          eq(orders.status, 'completed')
+        )
+      );
+    const completedOrders = completedOrdersResult[0]?.count || 0;
+    
+    // Calculate total spent
+    const spentResult = await db.select({
+      total: orders.amount
+    })
+    .from(orders)
+    .where(
+      and(
+        eq(orders.clientId, clientId),
+        eq(orders.status, 'completed')
+      )
+    );
+    
+    const totalSpent = spentResult.reduce((sum, item) => sum + (item.total || 0), 0);
     
     return {
       postedJobs,
@@ -434,18 +476,37 @@ export class MemStorage implements IStorage {
   }
   
   async getAdminStats(): Promise<AdminStats> {
-    const totalUsers = this.users.size;
-    const totalJobs = this.jobs.size;
-    const totalOrders = this.orders.size;
+    // Get total users
+    const totalUsersResult = await db.select({ count: users.id }).from(users);
+    const totalUsers = totalUsersResult[0]?.count || 0;
     
-    const completedOrders = Array.from(this.orders.values()).filter(
-      order => order.status === 'completed'
-    );
-    const totalRevenue = completedOrders.reduce((sum, order) => sum + (order.amount * 0.1), 0); // 10% commission
+    // Get total jobs
+    const totalJobsResult = await db.select({ count: jobs.id }).from(jobs);
+    const totalJobs = totalJobsResult[0]?.count || 0;
     
-    const pendingWriters = Array.from(this.users.values()).filter(
-      user => user.role === 'writer' && user.approvalStatus === 'pending'
-    ).length;
+    // Get total orders
+    const totalOrdersResult = await db.select({ count: orders.id }).from(orders);
+    const totalOrders = totalOrdersResult[0]?.count || 0;
+    
+    // Calculate total revenue (10% of completed orders)
+    const completedOrdersResult = await db.select({
+      total: orders.amount
+    })
+    .from(orders)
+    .where(eq(orders.status, 'completed'));
+    
+    const totalRevenue = completedOrdersResult.reduce((sum, item) => sum + (item.total * 0.1), 0);
+    
+    // Get pending writers
+    const pendingWritersResult = await db.select({ count: users.id })
+      .from(users)
+      .where(
+        and(
+          eq(users.role, 'writer'),
+          eq(users.approvalStatus, 'pending')
+        )
+      );
+    const pendingWriters = pendingWritersResult[0]?.count || 0;
     
     return {
       totalUsers,
@@ -457,4 +518,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
