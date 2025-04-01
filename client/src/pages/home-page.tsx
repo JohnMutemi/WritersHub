@@ -25,36 +25,52 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header/Navbar */}
-      <header className="bg-white border-b shadow-sm py-4 px-6">
+      <header className="bg-white py-4 px-6 sticky top-0 z-50 shadow-md">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="40"
-              height="40"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-primary"
-            >
-              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-              <path d="m15 5 4 4" />
-            </svg>
-            <h1 className="ml-2 text-xl font-bold text-primary">SharpQuill</h1>
+            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center mr-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                <path d="m15 5 4 4" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-extrabold text-gray-900">Sharp<span className="text-primary">Quill</span></h1>
           </div>
-          <nav className="hidden md:flex space-x-8 items-center">
-            <a href="#about" className="text-gray-600 hover:text-primary">About</a>
-            <a href="#services" className="text-gray-600 hover:text-primary">Services</a>
-            <a href="#how-it-works" className="text-gray-600 hover:text-primary">How It Works</a>
-            <Link href="/auth">
-              <Button variant="default">Sign In</Button>
-            </Link>
+          <nav className="hidden md:flex items-center space-x-2">
+            <a href="#about" className="px-4 py-2 rounded-md text-gray-700 hover:bg-primary/10 hover:text-primary font-medium transition-colors">
+              About
+            </a>
+            <a href="#services" className="px-4 py-2 rounded-md text-gray-700 hover:bg-primary/10 hover:text-primary font-medium transition-colors">
+              Services
+            </a>
+            <a href="#how-it-works" className="px-4 py-2 rounded-md text-gray-700 hover:bg-primary/10 hover:text-primary font-medium transition-colors">
+              How It Works
+            </a>
+            <div className="ml-4 pl-4 border-l border-gray-200">
+              <Link href="/auth">
+                <Button variant="outline" className="mr-2 border-primary text-primary hover:bg-primary/10">
+                  Login
+                </Button>
+              </Link>
+              <Link href="/auth?tab=register">
+                <Button variant="default" className="bg-primary hover:bg-primary/90">
+                  Register
+                </Button>
+              </Link>
+            </div>
           </nav>
           <div className="md:hidden">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="text-gray-700">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
@@ -76,31 +92,38 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <section className="py-16 px-6 bg-gradient-to-br from-primary/10 to-primary/5">
+      <section className="py-20 px-6 bg-gradient-to-br from-primary/80 to-primary/50 text-white">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center">
           <div className="md:w-1/2 mb-8 md:mb-0">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
-              Quality Content Writing Made Simple
+            <div className="inline-block px-4 py-1 rounded-full bg-white/20 text-white text-sm font-medium mb-6">
+              PREMIUM CONTENT PLATFORM
+            </div>
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white drop-shadow-sm">
+              Quality Content Writing Made <span className="bg-white text-primary px-2 rounded">Simple</span>
             </h1>
-            <p className="text-lg text-gray-700 mb-6">
+            <p className="text-xl text-white/90 mb-8 max-w-xl">
               Connect with skilled writers to bring your ideas to life. SharpQuill provides a platform for businesses to find professional writers for all their content needs.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link href="/auth">
-                <Button className="w-full sm:w-auto">Get Started</Button>
+                <Button size="lg" className="w-full sm:w-auto bg-white text-primary hover:bg-white/90 hover:text-primary/90">
+                  Get Started
+                </Button>
               </Link>
               <a href="#how-it-works">
-                <Button variant="outline" className="w-full sm:w-auto">Learn More</Button>
+                <Button size="lg" variant="outline" className="w-full sm:w-auto border-white text-white hover:bg-white/10">
+                  Learn More
+                </Button>
               </a>
             </div>
           </div>
           <div className="md:w-1/2 flex justify-center">
-            <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-xl">
-              <div className="mx-auto w-16 h-16 mb-4 bg-primary/10 rounded-full flex items-center justify-center">
+            <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-2xl transform rotate-1 hover:rotate-0 transition-all duration-300">
+              <div className="mx-auto w-20 h-20 mb-6 bg-primary/10 rounded-full flex items-center justify-center border-4 border-primary/20">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="28"
-                  height="28"
+                  width="32"
+                  height="32"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -113,14 +136,14 @@ export default function HomePage() {
                   <path d="m15 5 4 4" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-center mb-4">Join SharpQuill Today</h3>
-              <div className="space-y-6">
-                <div className="flex items-center">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-4">
+              <h3 className="text-2xl font-bold text-center mb-6 text-gray-800">Join SharpQuill Today</h3>
+              <div className="space-y-8">
+                <div className="flex items-center bg-primary/5 p-4 rounded-lg transform hover:scale-105 transition-all duration-200">
+                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mr-4">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      width="18"
-                      height="18"
+                      width="20"
+                      height="20"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -136,16 +159,16 @@ export default function HomePage() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-medium">For Clients</h4>
-                    <p className="text-sm text-gray-600">Post jobs and find skilled writers</p>
+                    <h4 className="font-bold text-gray-800">For Clients</h4>
+                    <p className="text-gray-600">Post jobs and find skilled writers</p>
                   </div>
                 </div>
-                <div className="flex items-center">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-4">
+                <div className="flex items-center bg-primary/5 p-4 rounded-lg transform hover:scale-105 transition-all duration-200">
+                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mr-4">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      width="18"
-                      height="18"
+                      width="20"
+                      height="20"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -159,8 +182,8 @@ export default function HomePage() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-medium">For Writers</h4>
-                    <p className="text-sm text-gray-600">Bid on projects and grow your career</p>
+                    <h4 className="font-bold text-gray-800">For Writers</h4>
+                    <p className="text-gray-600">Bid on projects and grow your career</p>
                   </div>
                 </div>
               </div>

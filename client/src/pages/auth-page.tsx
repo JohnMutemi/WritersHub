@@ -104,21 +104,39 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="max-w-6xl w-full flex flex-col md:flex-row shadow-lg rounded-lg overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-primary/5 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="max-w-6xl w-full flex flex-col md:flex-row shadow-xl rounded-xl overflow-hidden transform hover:scale-[1.01] transition-all duration-300">
         {/* Left side - form */}
-        <div className="flex-1 bg-white p-6 sm:p-8 md:p-10">
+        <div className="flex-1 bg-white p-8 sm:p-10 md:p-12">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">SharpQuill</h1>
-            <p className="mt-2 text-sm text-gray-600">
+            <div className="inline-flex items-center justify-center mb-4">
+              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center mr-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                  <path d="m15 5 4 4" />
+                </svg>
+              </div>
+              <h1 className="text-3xl font-extrabold text-gray-900">Sharp<span className="text-primary">Quill</span></h1>
+            </div>
+            <p className="mt-2 text-gray-600 text-lg">
               The premium platform for freelance writers
             </p>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-8 p-1 bg-primary/5 rounded-lg">
+              <TabsTrigger value="login" className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-white py-3">Login</TabsTrigger>
+              <TabsTrigger value="register" className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-white py-3">Register</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
@@ -129,9 +147,13 @@ export default function AuthPage() {
                     name="username"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Username</FormLabel>
+                        <FormLabel className="text-gray-700 font-medium">Username</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter your username" {...field} />
+                          <Input 
+                            placeholder="Enter your username" 
+                            className="border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-md py-6" 
+                            {...field} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -143,9 +165,14 @@ export default function AuthPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Password</FormLabel>
+                        <FormLabel className="text-gray-700 font-medium">Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="Enter your password" {...field} />
+                          <Input 
+                            type="password" 
+                            placeholder="Enter your password" 
+                            className="border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-md py-6" 
+                            {...field} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -154,10 +181,20 @@ export default function AuthPage() {
 
                   <Button
                     type="submit"
-                    className="w-full"
+                    className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-6 mt-4"
                     disabled={loginMutation.isPending}
                   >
-                    {loginMutation.isPending ? "Logging in..." : "Login"}
+                    {loginMutation.isPending ? (
+                      <span className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Logging in...
+                      </span>
+                    ) : (
+                      "Login"
+                    )}
                   </Button>
                 </form>
               </Form>
@@ -171,9 +208,13 @@ export default function AuthPage() {
                     name="fullName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Full Name</FormLabel>
+                        <FormLabel className="text-gray-700 font-medium">Full Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter your full name" {...field} />
+                          <Input 
+                            placeholder="Enter your full name" 
+                            className="border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-md py-6" 
+                            {...field} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -185,9 +226,13 @@ export default function AuthPage() {
                     name="username"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Username</FormLabel>
+                        <FormLabel className="text-gray-700 font-medium">Username</FormLabel>
                         <FormControl>
-                          <Input placeholder="Choose a username" {...field} />
+                          <Input 
+                            placeholder="Choose a username" 
+                            className="border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-md py-6" 
+                            {...field} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -199,9 +244,14 @@ export default function AuthPage() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel className="text-gray-700 font-medium">Email</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="Enter your email" {...field} />
+                          <Input 
+                            type="email" 
+                            placeholder="Enter your email" 
+                            className="border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-md py-6" 
+                            {...field} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -213,9 +263,14 @@ export default function AuthPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Password</FormLabel>
+                        <FormLabel className="text-gray-700 font-medium">Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="Create a password" {...field} />
+                          <Input 
+                            type="password" 
+                            placeholder="Create a password" 
+                            className="border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-md py-6" 
+                            {...field} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -227,16 +282,26 @@ export default function AuthPage() {
                     name="role"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Role</FormLabel>
+                        <FormLabel className="text-gray-700 font-medium">Role</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-md py-6">
                               <SelectValue placeholder="Select a role" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="writer">Writer</SelectItem>
-                            <SelectItem value="client">Client</SelectItem>
+                            <SelectItem value="writer" className="py-3">
+                              <div className="flex items-center">
+                                <Pen className="h-4 w-4 mr-2" />
+                                <span>Writer</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="client" className="py-3">
+                              <div className="flex items-center">
+                                <BookOpen className="h-4 w-4 mr-2" />
+                                <span>Client</span>
+                              </div>
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -246,10 +311,20 @@ export default function AuthPage() {
 
                   <Button
                     type="submit"
-                    className="w-full"
+                    className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-6 mt-4"
                     disabled={registerMutation.isPending}
                   >
-                    {registerMutation.isPending ? "Creating account..." : "Create Account"}
+                    {registerMutation.isPending ? (
+                      <span className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Creating account...
+                      </span>
+                    ) : (
+                      "Create Account"
+                    )}
                   </Button>
                 </form>
               </Form>
@@ -258,46 +333,54 @@ export default function AuthPage() {
         </div>
 
         {/* Right side - info */}
-        <div className="flex-1 bg-primary-700 text-white p-6 sm:p-8 md:p-10 hidden md:block">
-          <h2 className="text-3xl font-bold mb-6">Welcome to SharpQuill</h2>
-          <p className="text-primary-100 mb-8">
-            Connect with top-quality writers and clients in our premium freelance writing marketplace.
-          </p>
+        <div className="flex-1 bg-gradient-to-br from-primary to-primary/80 text-white p-8 sm:p-10 md:p-12 hidden md:block">
+          <div className="bg-white/10 rounded-xl p-6 backdrop-blur-sm mb-8">
+            <h2 className="text-4xl font-bold mb-4">Welcome to SharpQuill</h2>
+            <p className="text-white/90 text-lg leading-relaxed">
+              Connect with top-quality writers and clients in our premium freelance writing marketplace.
+            </p>
+          </div>
 
-          <div className="space-y-6">
-            <div className="flex items-start">
-              <div className="flex-shrink-0 bg-primary-600 rounded-md p-3 mr-4">
-                <Pen className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-medium mb-2">For Writers</h3>
-                <p className="text-primary-200">
-                  Showcase your talent, bid on projects that match your expertise, and build your freelance career.
-                </p>
+          <div className="space-y-8">
+            <div className="bg-white/10 rounded-xl p-6 backdrop-blur-sm hover:bg-white/20 transition-colors">
+              <div className="flex items-start">
+                <div className="flex-shrink-0 bg-white/20 rounded-lg p-4 mr-5">
+                  <Pen className="h-7 w-7 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold mb-3">For Writers</h3>
+                  <p className="text-white/80 leading-relaxed">
+                    Showcase your talent, bid on projects that match your expertise, and build your freelance career with our growing network of clients.
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="flex items-start">
-              <div className="flex-shrink-0 bg-primary-600 rounded-md p-3 mr-4">
-                <BookOpen className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-medium mb-2">For Clients</h3>
-                <p className="text-primary-200">
-                  Post your writing projects and connect with talented writers who can deliver quality content.
-                </p>
+            <div className="bg-white/10 rounded-xl p-6 backdrop-blur-sm hover:bg-white/20 transition-colors">
+              <div className="flex items-start">
+                <div className="flex-shrink-0 bg-white/20 rounded-lg p-4 mr-5">
+                  <BookOpen className="h-7 w-7 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold mb-3">For Clients</h3>
+                  <p className="text-white/80 leading-relaxed">
+                    Post your writing projects and connect with talented writers who can deliver high-quality content that meets your specific requirements.
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="flex items-start">
-              <div className="flex-shrink-0 bg-primary-600 rounded-md p-3 mr-4">
-                <User className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-medium mb-2">Secure Payments</h3>
-                <p className="text-primary-200">
-                  Our platform ensures secure transactions with multiple payment options including PayPal and M-Pesa.
-                </p>
+            <div className="bg-white/10 rounded-xl p-6 backdrop-blur-sm hover:bg-white/20 transition-colors">
+              <div className="flex items-start">
+                <div className="flex-shrink-0 bg-white/20 rounded-lg p-4 mr-5">
+                  <User className="h-7 w-7 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold mb-3">Secure Payments</h3>
+                  <p className="text-white/80 leading-relaxed">
+                    Our platform ensures secure transactions with multiple payment options including PayPal and M-Pesa, with escrow protection for both parties.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
