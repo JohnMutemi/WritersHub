@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 import { DashboardLayout } from "@/components/ui/dashboard-layout";
@@ -8,17 +8,19 @@ export default function HomePage() {
   const { user } = useAuth();
 
   // If logged in, redirect to respective dashboard
+  const [, navigate] = useLocation();
+  
   useEffect(() => {
     if (user) {
       if (user.role === 'writer') {
-        window.location.href = '/writer';
+        navigate('/writer');
       } else if (user.role === 'client') {
-        window.location.href = '/client';
+        navigate('/client');
       } else if (user.role === 'admin') {
-        window.location.href = '/admin';
+        navigate('/admin');
       }
     }
-  }, [user]);
+  }, [user, navigate]);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -168,21 +170,25 @@ export default function HomePage() {
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-16 px-6 bg-white">
+      <section id="about" className="py-16 px-6 bg-gradient-to-br from-primary/5 to-primary/10">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">About SharpQuill</h2>
-            <p className="text-gray-600 max-w-3xl mx-auto">
-              SharpQuill is a premier freelance writing platform connecting businesses with talented writers. Our mission is to make quality content accessible to everyone while providing opportunities for writers to showcase their skills.
+            <div className="inline-block p-2 px-4 bg-primary/10 rounded-full mb-4">
+              <h2 className="text-primary font-medium text-sm">ABOUT US</h2>
+            </div>
+            <h2 className="text-4xl font-bold mb-6 text-gray-900">About SharpQuill</h2>
+            <p className="text-gray-700 max-w-3xl mx-auto text-lg leading-relaxed">
+              SharpQuill is a premier freelance writing platform connecting businesses with talented writers from around the world. Our mission is to create a marketplace where quality content creation is accessible, fair, and efficient for both clients and writers.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
+            <div className="bg-white p-8 rounded-xl shadow-sm transition-all duration-300 hover:shadow-md">
+              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-6">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
+                  width="24"
+                  height="24"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -195,17 +201,17 @@ export default function HomePage() {
                   <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Affordable Pricing</h3>
-              <p className="text-gray-600">
-                Our competitive bidding system ensures fair pricing for quality work. No hidden fees or surprises.
+              <h3 className="text-xl font-semibold mb-3 text-gray-900">Competitive Pricing</h3>
+              <p className="text-gray-700 leading-relaxed">
+                Our transparent bidding system ensures fair pricing for quality work. Writers set their own competitive rates, and clients choose based on their budget and needs.
               </p>
             </div>
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <div className="bg-white p-8 rounded-xl shadow-sm transition-all duration-300 hover:shadow-md">
+              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-6">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
+                  width="24"
+                  height="24"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -218,17 +224,17 @@ export default function HomePage() {
                   <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Quality Guarantee</h3>
-              <p className="text-gray-600">
-                All our writers are vetted professionals. We ensure every project meets high standards.
+              <h3 className="text-xl font-semibold mb-3 text-gray-900">Quality Guarantee</h3>
+              <p className="text-gray-700 leading-relaxed">
+                We've implemented a comprehensive vetting process for writers, ensuring that all content meets high quality standards. Revisions are included with every order to guarantee client satisfaction.
               </p>
             </div>
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <div className="bg-white p-8 rounded-xl shadow-sm transition-all duration-300 hover:shadow-md">
+              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-6">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
+                  width="24"
+                  height="24"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -241,9 +247,9 @@ export default function HomePage() {
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Timely Delivery</h3>
-              <p className="text-gray-600">
-                Meet your deadlines with our efficient workflow system. Track progress in real-time.
+              <h3 className="text-xl font-semibold mb-3 text-gray-900">Timely Delivery</h3>
+              <p className="text-gray-700 leading-relaxed">
+                Our platform is designed to help you meet deadlines with an efficient workflow system. Track project progress in real-time and receive notifications at every stage of your project.
               </p>
             </div>
           </div>

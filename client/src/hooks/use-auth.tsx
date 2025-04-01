@@ -38,6 +38,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
+      
+      // Redirect based on role
+      setTimeout(() => {
+        if (user.role === 'writer') {
+          window.location.href = '/writer';
+        } else if (user.role === 'client') {
+          window.location.href = '/client';
+        } else if (user.role === 'admin') {
+          window.location.href = '/admin';
+        } else {
+          window.location.href = '/';
+        }
+      }, 100);
     },
     onError: (error: Error) => {
       toast({
@@ -55,6 +68,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
+      
+      // Redirect based on role
+      setTimeout(() => {
+        if (user.role === 'writer') {
+          window.location.href = '/writer';
+        } else if (user.role === 'client') {
+          window.location.href = '/client';
+        } else if (user.role === 'admin') {
+          window.location.href = '/admin';
+        } else {
+          window.location.href = '/';
+        }
+      }, 100);
     },
     onError: (error: Error) => {
       toast({
@@ -71,6 +97,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
+      queryClient.invalidateQueries();
+      
+      // Redirect to homepage after logout
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 100);
     },
     onError: (error: Error) => {
       toast({

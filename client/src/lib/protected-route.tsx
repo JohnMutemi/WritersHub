@@ -48,18 +48,18 @@ export function ProtectedRoute({
               
               {/* Redirect based on user role */}
               {user.role === "writer" && (
-                <Button onClick={() => window.location.href = "/writer"}>
-                  Go to Writer Dashboard
+                <Button asChild>
+                  <a href="/writer">Go to Writer Dashboard</a>
                 </Button>
               )}
               {user.role === "client" && (
-                <Button onClick={() => window.location.href = "/client"}>
-                  Go to Client Dashboard
+                <Button asChild>
+                  <a href="/client">Go to Client Dashboard</a>
                 </Button>
               )}
               {user.role === "admin" && (
-                <Button onClick={() => window.location.href = "/admin"}>
-                  Go to Admin Dashboard
+                <Button asChild>
+                  <a href="/admin">Go to Admin Dashboard</a>
                 </Button>
               )}
             </div>
