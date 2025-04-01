@@ -1,0 +1,123 @@
+# Project Definition Report (PDR)
+
+## 1. Project Overview
+The goal of this project is to create an **online writing application** similar to EssayPro and Academia Writers. This platform will facilitate interactions between **clients (students, professionals, etc.)**, **writers (freelance writers, editors)**, and an **admin (platform manager)**. The system will support **job posting, bidding, order processing, messaging, payments, and ratings**.
+
+## 2. User Roles & Permissions
+### **1. Admin**
+- Manage all users (clients and writers)
+- Approve or ban writers
+- Oversee job postings and bidding
+- Track platform KPIs and transactions
+- Resolve disputes between writers and clients
+- Manage payments and refunds
+- Monitor chat conversations for security purposes
+
+### **2. Client**
+- Post assignments they need help with
+- Release a **downpayment** when posting a job
+- View bids from writers and accept a bid
+- Communicate with the writer via a chat system
+- Mark an assignment as complete and move it to the **Completed Orders** section
+- Rate the writer after receiving the completed assignment
+- Request revisions if necessary
+
+### **3. Writer**
+- Browse available assignments and bid for them
+- Get notified when a client accepts their bid
+- View assigned work under **Orders in Progress**
+- Upload completed assignments
+- Chat with the client regarding assignment progress
+- Receive ratings from clients
+- Track their rating metrics and order history
+
+## 3. System Features & Functionalities
+### **1. User Authentication**
+- Signup/Login via Email & Password (OAuth for Google optional)
+- Role-based authentication (Client, Writer, Admin)
+- Password recovery/reset option
+
+### **2. Assignment Posting & Bidding**
+- Clients create an assignment with details (title, deadline, word count, subject, etc.)
+- Writers bid on assignments with proposed prices and deadlines
+- Clients accept or reject bids
+- System automatically updates the assignment status (open, in progress, completed)
+
+### **3. Payment System**
+- Clients release an initial **downpayment** upon job posting
+- Payments are held in escrow until order completion
+- Upon completion, funds are released to the writer
+- Option for clients to request refunds in case of disputes
+- Integration with payment gateways (e.g., Stripe, PayPal, IntaSend for MPESA)
+
+### **4. Order Management**
+- Clients & Writers have separate dashboards
+- **Clients:** Track assignments (open, in progress, completed)
+- **Writers:** Track assignments (bids, in progress, completed)
+- **Admin:** Access an overview of all assignments
+
+### **5. Messaging System**
+- Real-time chat feature between Clients and Writers
+- Admin access for dispute resolution
+- Option to send file attachments (Word, PDF, etc.)
+
+### **6. Rating & Reviews**
+- Clients can rate writers upon order completion
+- Ratings contribute to writer metrics
+- Writers can view feedback to improve performance
+
+### **7. Admin Dashboard (KPIs & Platform Management)**
+- Track total orders, completed orders, pending orders
+- Monitor total earnings and revenue breakdown
+- Track top-rated writers and client satisfaction metrics
+- View and manage disputes
+- Manage system notifications
+
+## 4. Tech Stack Recommendations
+| Component | Tech Stack |
+|-----------|------------|
+| **Frontend** | React.js / Next.js |
+| **Backend** | Node.js (Express) / Flask / Django |
+| **Database** | PostgreSQL / MySQL (for structured data) |
+| **Authentication** | Firebase Auth / JWT (JSON Web Tokens) |
+| **Messaging System** | WebSockets (Socket.io) or Firebase Real-time Database |
+| **Payments** | Stripe / PayPal / IntaSend (for MPESA) |
+| **Hosting** | Vercel (Frontend) / AWS, DigitalOcean, or Heroku (Backend) |
+
+## 5. APIs and Integrations
+- **User Authentication API** (Sign up, login, role-based access)
+- **Job Management API** (CRUD operations for job postings & bids)
+- **Payment API** (Stripe, PayPal, IntaSend integration)
+- **Chat API** (Real-time messaging, notifications, file sharing)
+- **Review & Ratings API** (CRUD for reviews, writer ratings)
+- **Admin API** (KPIs, user management, dispute handling)
+
+## 6. Development Milestones
+### **Phase 1: Core System Setup (Week 1-4)**
+✅ Set up authentication system (Admin, Client, Writer roles)  
+✅ Create assignment posting & bidding system  
+✅ Implement payment processing with escrow feature  
+
+### **Phase 2: Order Management & Messaging (Week 5-8)**
+✅ Develop client & writer dashboards  
+✅ Implement real-time messaging feature  
+✅ Enable order tracking & notifications  
+
+### **Phase 3: Reviews, Admin Panel & Finalization (Week 9-12)**
+✅ Implement rating & review system  
+✅ Build the admin dashboard for monitoring KPIs  
+✅ Final testing & deployment  
+
+## 7. Notes for AI Coding Assistant (Replit)
+- Use **role-based authentication** to control access.
+- Ensure **payment escrow logic** is correctly implemented.
+- Implement **real-time chat** using WebSockets (Socket.io for Node.js or Django Channels for Python).
+- Follow **RESTful API principles** for backend services.
+- Set up **database schema** with relationships for users, assignments, bids, and transactions.
+- Use **JWT for secure authentication** and **bcrypt for password hashing**.
+- Create **unit tests** for critical features (authentication, payments, chat, job management).
+- Set up **CI/CD pipelines** for automated deployment and testing.
+
+## 8. Conclusion
+This online writing platform aims to provide a seamless, efficient, and user-friendly experience for clients, writers, and the admin. With robust payment security, a structured order system, and effective writer-client interaction, the platform will help streamline academic and professional writing services.
+
