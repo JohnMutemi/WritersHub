@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Job, Order, Bid } from "@shared/schema";
 import { Link } from "wouter";
-import { Loader2, Savings, CheckCircle, BookOpen, ClipboardList, ChevronRight } from "lucide-react";
+import { Loader2, Wallet, CheckCircle, BookOpen, ClipboardList, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -80,7 +80,7 @@ export default function WriterDashboard() {
               <StatCard
                 title="Available Balance"
                 value={`$${user?.balance.toFixed(2)}`}
-                icon={<Savings />}
+                icon={<Wallet />}
                 iconBgColor="bg-primary-100"
                 iconColor="text-primary-600"
                 actionText="Withdraw funds"
