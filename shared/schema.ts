@@ -142,3 +142,17 @@ export interface AdminStats {
   totalRevenue: number;
   pendingWriters: number;
 }
+
+// Extended types for frontend use
+export interface BidWithDetails extends Bid {
+  writerUsername?: string;
+  writerName?: string;
+  proposal?: string; // For backward compatibility, coverLetter is used in database
+}
+
+export interface OrderWithDetails extends Order {
+  jobTitle?: string;
+  writerUsername?: string;
+  clientUsername?: string;
+  revisionNotes?: string;
+}
