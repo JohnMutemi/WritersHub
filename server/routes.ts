@@ -366,6 +366,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
+  
+  // Admin API routes
+  app.get("/api/admin/users", hasRole(["admin"]), async (req, res, next) => {
+    try {
+      // We'll use storage.getUsers() if it exists, otherwise we'll simulate it
+      // In a real app, you would implement this method
+      const users = await Promise.all(
+        (await storage.getJobs()).map(job => storage.getUser(job.clientId))
+      );
+      
+      // Remove duplicates
+      const uniqueUsers = users.filter((user, index, self) => 
+        user && index === self.findIndex(u => u && u.id === user.id)
+      );
+      
+      res.json(uniqueUsers);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  app.get("/api/admin/jobs", hasRole(["admin"]), async (req, res, next) => {
+    try {
+      const jobs = await storage.getJobs();
+      res.json(jobs);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  app.get("/api/admin/orders", hasRole(["admin"]), async (req, res, next) => {
+    try {
+      const orders = await storage.getAllOrders();
+      res.json(orders);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Admin user approval routes
+  app.post("/api/admin/users/:id/approve", hasRole(["admin"]), async (req, res, next) => {
+    try {
+      const userId = Number(req.params.id);
+      
+      // Check if user exists
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'writer') {
+        return res.status(404).json({ message: "Writer not found" });
+      }
+      
+      // Update writer approval status
+      await storage.updateWriterApprovalStatus(userId, 'approved');
+      
+      res.sendStatus(200);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  app.post("/api/admin/users/:id/reject", hasRole(["admin"]), async (req, res, next) => {
+    try {
+      const userId = Number(req.params.id);
+      
+      // Check if user exists
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'writer') {
+        return res.status(404).json({ message: "Writer not found" });
+      }
+      
+      // Update writer approval status
+      await storage.updateWriterApprovalStatus(userId, 'rejected');
+      
+      res.sendStatus(200);
+    } catch (error) {
+      next(error);
+    }
+  });
 
   const httpServer = createServer(app);
 

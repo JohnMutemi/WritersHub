@@ -133,3 +133,12 @@ export type InsertBid = z.infer<typeof insertBidSchema>;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type InsertWriterQuiz = z.infer<typeof insertWriterQuizSchema>;
+
+// Stats interfaces
+export interface AdminStats {
+  totalUsers: number;
+  totalJobs: number;
+  totalOrders: number;
+  totalRevenue: number;
+  pendingWriters: number;
+}

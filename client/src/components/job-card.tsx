@@ -1,9 +1,9 @@
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Job } from "@shared/schema";
-import { CalendarIcon, DollarSign, FileText, Clock } from "lucide-react";
-import { formatDistance, format } from "date-fns";
+import React from 'react';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Job } from '@shared/schema';
+import { Calendar, Clock, DollarSign, FileText } from 'lucide-react';
 
 interface JobCardProps {
   job: Job;
@@ -12,52 +12,70 @@ interface JobCardProps {
 }
 
 export function JobCard({ job, onBid, onView }: JobCardProps) {
-  const postedDate = job.createdAt ? new Date(job.createdAt) : new Date();
-  const timeAgo = formatDistance(postedDate, new Date(), { addSuffix: true });
+  // Format date
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  // Truncate description
+  const truncateDescription = (text: string, maxLength = 150) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
 
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <CardTitle className="line-clamp-2 text-lg font-semibold">
-            {job.title}
-          </CardTitle>
-          <Badge variant="outline" className="capitalize">{job.category}</Badge>
-        </div>
-        <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-          <CalendarIcon className="h-3 w-3" />
-          <span>Posted {timeAgo}</span>
-        </div>
-      </CardHeader>
-      <CardContent className="pb-2">
-        <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
-          {job.description}
-        </p>
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          <div className="flex items-center gap-1">
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">${job.budget}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">{job.deadline} days</span>
-          </div>
-          {job.pages && (
-            <div className="flex items-center gap-1">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{job.pages} pages</span>
+      <CardContent className="p-6">
+        <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+          <div className="flex-1">
+            <div className="flex flex-wrap gap-2 items-center mb-2">
+              <h3 className="text-xl font-semibold mr-2">{job.title}</h3>
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-100">
+                {job.status}
+              </Badge>
             </div>
-          )}
+            
+            <p className="text-muted-foreground mb-4">
+              {truncateDescription(job.description)}
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-2">
+              <div className="flex items-center">
+                <DollarSign className="h-4 w-4 mr-2 text-green-600" />
+                <span>
+                  <span className="font-medium">${job.budget.toFixed(2)}</span> budget
+                </span>
+              </div>
+              
+              <div className="flex items-center">
+                <Clock className="h-4 w-4 mr-2 text-amber-600" />
+                <span>
+                  <span className="font-medium">{job.deadline}</span> days deadline
+                </span>
+              </div>
+              
+              <div className="flex items-center">
+                <Calendar className="h-4 w-4 mr-2 text-blue-600" />
+                <span>Posted {formatDate(job.createdAt)}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex flex-col gap-2 sm:flex-row lg:flex-col mt-4 lg:mt-0">
+            <Button onClick={() => onBid(job)}>
+              Place Bid
+            </Button>
+            <Button variant="outline" onClick={() => onView(job)}>
+              <FileText className="h-4 w-4 mr-2" />
+              View Details
+            </Button>
+          </div>
         </div>
       </CardContent>
-      <CardFooter className="pt-2 flex gap-2">
-        <Button variant="outline" className="w-1/2" onClick={() => onView(job)}>
-          View Details
-        </Button>
-        <Button className="w-1/2" onClick={() => onBid(job)}>
-          Place Bid
-        </Button>
-      </CardFooter>
     </Card>
   );
 }

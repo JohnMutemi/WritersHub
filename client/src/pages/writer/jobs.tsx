@@ -1,147 +1,165 @@
-import { useAuth } from "@/hooks/use-auth";
-import { DashboardLayout } from "@/components/ui/dashboard-layout";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useState } from "react";
-import { Job } from "@shared/schema";
-import { BidModal } from "@/components/bid-modal";
-import { JobCard } from "@/components/job-card";
-import { Loader2, AlertCircle, CheckCircle, Clock } from "lucide-react";
+import React, { useState } from 'react';
+import { DashboardLayout } from '@/components/ui/dashboard-layout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { JobCard } from '@/components/job-card';
+import { BidModal } from '@/components/bid-modal';
+import { useQuery } from '@tanstack/react-query';
+import { Job } from '@shared/schema';
+import { useAuth } from '@/hooks/use-auth';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle, Search, ArrowDownAZ, Banknote } from 'lucide-react';
 
 export default function WriterJobs() {
   const { user } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'deadline' | 'budget'>('deadline');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [bidModalOpen, setBidModalOpen] = useState(false);
+  const [isBidModalOpen, setIsBidModalOpen] = useState(false);
 
-  // Mock data for available jobs
-  const mockJobs: Job[] = [
-    {
-      id: 1,
-      clientId: 3,
-      title: "Technical Writing for Software Documentation",
-      description: "We need comprehensive documentation for our new API. The writer should be familiar with REST APIs and have experience documenting technical content for developers.",
-      category: "Technical",
-      budget: 300,
-      deadline: 14,
-      pages: 20,
-      status: "open",
-      createdAt: new Date("2025-03-10")
-    },
-    {
-      id: 2,
-      clientId: 2,
-      title: "Blog Content for Health and Wellness Website",
-      description: "Looking for a writer to create engaging blog content about nutrition, fitness, and mental health. Topics will be provided but writer should be able to research and provide factual information.",
-      category: "Blog",
-      budget: 200,
-      deadline: 7,
-      pages: 10,
-      status: "open",
-      createdAt: new Date("2025-03-15")
-    },
-    {
-      id: 3,
-      clientId: 4,
-      title: "Product Descriptions for E-commerce Store",
-      description: "Need compelling product descriptions for our fashion e-commerce store. The writer should be able to convert features into benefits and write persuasive copy that encourages purchases.",
-      category: "E-commerce",
-      budget: 250,
-      deadline: 10,
-      pages: 15,
-      status: "open",
-      createdAt: new Date("2025-03-18")
-    },
-    {
-      id: 4,
-      clientId: 5,
-      title: "Academic Research Paper on Environmental Science",
-      description: "Need a well-researched paper on climate change impacts on marine ecosystems. The writer should have a background in environmental science or related field and be able to cite credible sources.",
-      category: "Academic",
-      budget: 400,
-      deadline: 21,
-      pages: 25,
-      status: "open",
-      createdAt: new Date("2025-03-20")
-    },
-    {
-      id: 5,
-      clientId: 1,
-      title: "Social Media Content Calendar",
-      description: "Looking for a creative writer to develop a month's worth of social media content for our brand. The content should be engaging, on-brand, and drive user interaction.",
-      category: "Social Media",
-      budget: 180,
-      deadline: 7,
-      pages: null,
-      status: "open",
-      createdAt: new Date("2025-03-22")
-    }
-  ];
-
-  // Fetch available jobs
-  const { data: availableJobs = mockJobs, isLoading: jobsLoading } = useQuery({
-    queryKey: ['/api/jobs/available'],
-    queryFn: async () => {
-      try {
-        const response = await apiRequest('GET', '/api/jobs/available');
-        return await response.json();
-      } catch (error) {
-        // Fallback to mock data if API fails
-        return mockJobs;
-      }
-    },
-    enabled: !!user
+  // Fetch jobs
+  const { data: jobs, isLoading } = useQuery<Job[]>({
+    queryKey: ['/api/jobs'],
+    retry: false
   });
 
-  const handlePlaceBid = (job: Job) => {
-    setSelectedJob(job);
-    setBidModalOpen(true);
-  };
+  // Filter and sort jobs
+  const filteredJobs = React.useMemo(() => {
+    if (!jobs) return [];
+    
+    // Only show open jobs
+    let filtered = jobs.filter(job => job.status === 'open');
+    
+    // Apply search filter
+    if (searchTerm) {
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        job => 
+          job.title.toLowerCase().includes(lowerSearchTerm) ||
+          job.description.toLowerCase().includes(lowerSearchTerm)
+      );
+    }
+    
+    // Apply sorting
+    return [...filtered].sort((a, b) => {
+      if (sortBy === 'deadline') {
+        return a.deadline - b.deadline;
+      } else {
+        return b.budget - a.budget;
+      }
+    });
+  }, [jobs, searchTerm, sortBy]);
 
-  const handleViewJob = (job: Job) => {
+  const handleBidClick = (job: Job) => {
     setSelectedJob(job);
-    // In a real app, this would open a job detail view
+    setIsBidModalOpen(true);
+  };
+  
+  const handleJobView = (job: Job) => {
+    // In a real app, this would navigate to a job detail page
+    setSelectedJob(job);
+    setIsBidModalOpen(true);
   };
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold tracking-tight">Available Jobs</h1>
-          <p className="text-muted-foreground">
-            Browse and bid on available writing jobs
-          </p>
+      <div className="p-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">Available Jobs</h1>
+            <p className="text-gray-500 mt-1">Find and bid on writing opportunities</p>
+          </div>
         </div>
 
-        {/* Filter controls could go here */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {jobsLoading ? (
-            <div className="col-span-full flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        {/* Writer approval status */}
+        {user?.role === 'writer' && user.approvalStatus !== 'approved' && (
+          <Alert className="mb-6 border-amber-500 text-amber-800 bg-amber-50">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Account Approval Required</AlertTitle>
+            <AlertDescription>
+              Your writer account is currently {user.approvalStatus === 'pending' ? 'pending approval' : 'not approved'}.
+              You can browse jobs, but you'll need approval before placing bids.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Search and filters */}
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search jobs..."
+                  className="pl-8"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant={sortBy === 'deadline' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSortBy('deadline')}
+                >
+                  <ArrowDownAZ className="mr-1 h-4 w-4" /> Deadline
+                </Button>
+                <Button
+                  variant={sortBy === 'budget' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSortBy('budget')}
+                >
+                  <Banknote className="mr-1 h-4 w-4" /> Budget
+                </Button>
+              </div>
             </div>
-          ) : availableJobs.length === 0 ? (
-            <div className="col-span-full text-center py-8">
-              <p className="text-muted-foreground">No available jobs found. Check back later!</p>
+          </CardContent>
+        </Card>
+
+        {/* Jobs list */}
+        <div className="space-y-4">
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="spinner-border inline-block h-8 w-8 border-4 rounded-full text-primary" role="status">
+                <span className="visually-hidden">Loading jobs...</span>
+              </div>
+              <p className="mt-2 text-muted-foreground">Loading available jobs...</p>
             </div>
+          ) : filteredJobs.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="text-muted-foreground">No jobs found matching your criteria.</p>
+                {searchTerm && (
+                  <Button 
+                    variant="outline" 
+                    className="mt-2" 
+                    onClick={() => setSearchTerm('')}
+                  >
+                    Clear Search
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
           ) : (
-            availableJobs.map((job: Job) => (
+            filteredJobs.map(job => (
               <JobCard 
                 key={job.id} 
                 job={job} 
-                onBid={handlePlaceBid}
-                onView={handleViewJob}
+                onBid={handleBidClick} 
+                onView={handleJobView} 
               />
             ))
           )}
         </div>
       </div>
 
-      {/* Bid Modal */}
+      {/* Bid modal */}
       <BidModal 
         job={selectedJob} 
-        isOpen={bidModalOpen} 
-        onClose={() => setBidModalOpen(false)} 
+        isOpen={isBidModalOpen} 
+        onClose={() => setIsBidModalOpen(false)} 
       />
     </DashboardLayout>
   );
