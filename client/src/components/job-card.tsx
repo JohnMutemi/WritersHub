@@ -1,8 +1,9 @@
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Job } from "@shared/schema";
-import { ExternalLink, Clock } from "lucide-react";
+import { CalendarIcon, DollarSign, FileText, Clock } from "lucide-react";
+import { formatDistance, format } from "date-fns";
 
 interface JobCardProps {
   job: Job;
@@ -11,45 +12,51 @@ interface JobCardProps {
 }
 
 export function JobCard({ job, onBid, onView }: JobCardProps) {
+  const postedDate = job.createdAt ? new Date(job.createdAt) : new Date();
+  const timeAgo = formatDistance(postedDate, new Date(), { addSuffix: true });
+
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="pb-3">
-        <div className="flex justify-between">
-          <Badge variant="outline">{job.category}</Badge>
-          <p className="text-sm text-muted-foreground">
-            <Clock className="inline-block mr-1 h-3 w-3" />
-            {job.deadline} days
-          </p>
+    <Card className="overflow-hidden transition-all hover:shadow-md">
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-start">
+          <CardTitle className="line-clamp-2 text-lg font-semibold">
+            {job.title}
+          </CardTitle>
+          <Badge variant="outline" className="capitalize">{job.category}</Badge>
         </div>
-        <CardTitle className="text-lg mt-2 line-clamp-2">{job.title}</CardTitle>
-        <CardDescription className="font-medium text-primary">
-          ${job.budget}
-        </CardDescription>
+        <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+          <CalendarIcon className="h-3 w-3" />
+          <span>Posted {timeAgo}</span>
+        </div>
       </CardHeader>
-      <CardContent className="pb-2 flex-grow">
-        <p className="text-sm text-muted-foreground line-clamp-3">
+      <CardContent className="pb-2">
+        <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
           {job.description}
         </p>
-      </CardContent>
-      <CardFooter className="pt-1">
-        <div className="flex gap-2 w-full">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={() => onView(job)}
-          >
-            <ExternalLink className="mr-2 h-4 w-4" />
-            Details
-          </Button>
-          <Button 
-            size="sm" 
-            className="flex-1"
-            onClick={() => onBid(job)}
-          >
-            Place Bid
-          </Button>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="flex items-center gap-1">
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">${job.budget}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">{job.deadline} days</span>
+          </div>
+          {job.pages && (
+            <div className="flex items-center gap-1">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">{job.pages} pages</span>
+            </div>
+          )}
         </div>
+      </CardContent>
+      <CardFooter className="pt-2 flex gap-2">
+        <Button variant="outline" className="w-1/2" onClick={() => onView(job)}>
+          View Details
+        </Button>
+        <Button className="w-1/2" onClick={() => onBid(job)}>
+          Place Bid
+        </Button>
       </CardFooter>
     </Card>
   );

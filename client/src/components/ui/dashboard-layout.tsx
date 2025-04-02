@@ -53,32 +53,34 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         )}
       >
         <div className="flex h-16 shrink-0 items-center border-b px-4">
-          <div 
-            className="flex items-center cursor-pointer"
-            onClick={() => window.location.href = "/"}
-          >
-            <span className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg mr-2">SQ</span>
-            <span className="text-xl font-semibold">SharpQuill</span>
-          </div>
+          <Link href="/">
+            <div className="flex items-center cursor-pointer">
+              <span className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg mr-2">SQ</span>
+              <span className="text-xl font-semibold">SharpQuill</span>
+            </div>
+          </Link>
         </div>
         <ScrollArea className="flex flex-col flex-grow px-2 py-4">
           <nav className="flex flex-col space-y-1">
             {navigation.map((item) => {
               const isActive = location === item.href;
               return (
-                <div 
-                  key={item.name}
-                  className={cn(
-                    "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium cursor-pointer",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  )}
-                  onClick={() => window.location.href = item.href}
+                <Link 
+                  key={item.name} 
+                  href={item.href}
                 >
-                  <item.icon className="h-4 w-4" />
-                  {item.name}
-                </div>
+                  <div
+                    className={cn(
+                      "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium cursor-pointer",
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.name}
+                  </div>
+                </Link>
               );
             })}
           </nav>

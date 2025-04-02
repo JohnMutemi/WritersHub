@@ -1,8 +1,9 @@
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Order } from "@shared/schema";
-import { FileText, Clock, ExternalLink } from "lucide-react";
+import { CalendarIcon, Clock, AlertCircle, CheckCircle, DollarSign } from "lucide-react";
+import { format, formatDistance, isAfter } from "date-fns";
 
 interface OrderItemProps {
   order: Order;
@@ -11,67 +12,80 @@ interface OrderItemProps {
 }
 
 export function OrderItem({ order, onViewDetails, onDeliver }: OrderItemProps) {
+  const deadlineDate = order.deadline ? new Date(order.deadline) : new Date();
+  const createdDate = order.createdAt ? new Date(order.createdAt) : new Date();
+  const timeUntilDeadline = formatDistance(deadlineDate, new Date());
+  const isOverdue = isAfter(new Date(), deadlineDate) && order.status !== 'completed';
+  
+  const getStatusBadge = () => {
+    switch (order.status) {
+      case 'in_progress':
+        return <Badge variant="outline" className="bg-blue-50 text-blue-600 hover:bg-blue-50">In Progress</Badge>;
+      case 'revision':
+        return <Badge variant="outline" className="bg-amber-50 text-amber-600 hover:bg-amber-50">Revision</Badge>;
+      case 'completed':
+        return <Badge variant="outline" className="bg-green-50 text-green-600 hover:bg-green-50">Completed</Badge>;
+      case 'cancelled':
+        return <Badge variant="outline" className="bg-red-50 text-red-600 hover:bg-red-50">Cancelled</Badge>;
+      default:
+        return <Badge variant="outline">Unknown</Badge>;
+    }
+  };
+
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <Badge variant={
-            order.status === 'in_progress' ? 'default' :
-            order.status === 'revision' ? 'outline' :
-            order.status === 'completed' ? 'default' :
-            'destructive'
-          }>
-            {order.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-          </Badge>
-          <p className="text-sm text-muted-foreground">
-            <Clock className="inline-block mr-1 h-3 w-3" />
-            Due in {order.deadline ? Math.max(0, Math.floor((new Date(order.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : '--'} days
-          </p>
-        </div>
-        <CardTitle className="text-lg mt-2">Order #{order.id}</CardTitle>
-        <CardDescription>
-          Job title unavailable
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pb-2">
-        <div className="flex items-center justify-between text-sm">
-          <div>
-            <p className="font-medium text-primary">${order.amount}</p>
-            <p className="text-muted-foreground mt-1">
-              Page count not specified
-            </p>
+    <Card className="overflow-hidden">
+      <CardContent className="p-4">
+        <div className="flex flex-col sm:flex-row justify-between gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-lg">Order #{order.id}</h3>
+              {getStatusBadge()}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              <p>Job ID: #{order.jobId}</p>
+              <p>Client ID: #{order.clientId}</p>
+            </div>
+            <div className="flex items-center gap-1 text-sm">
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">${order.amount}</span>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 text-sm">
+              <div className="flex items-center gap-1">
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                <span>Created: {format(createdDate, 'MMM d, yyyy')}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className={`h-4 w-4 ${isOverdue ? 'text-red-500' : 'text-muted-foreground'}`} />
+                <span className={isOverdue ? 'text-red-500 font-medium' : ''}>
+                  {order.status === 'completed' 
+                    ? 'Completed on ' + format(new Date(order.completedAt || new Date()), 'MMM d, yyyy')
+                    : isOverdue 
+                      ? 'Overdue by ' + timeUntilDeadline 
+                      : 'Due in ' + timeUntilDeadline
+                  }
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="text-right">
-            <p className="font-medium">Client #{order.clientId}</p>
-            <p className="text-muted-foreground mt-1">
-              Created on {new Date(order.createdAt).toLocaleDateString()}
-            </p>
+          <div className="flex flex-row sm:flex-col justify-end gap-2 sm:min-w-[160px]">
+            <Button 
+              variant="outline" 
+              className="flex-1 sm:flex-auto"
+              onClick={() => onViewDetails(order)}
+            >
+              View Details
+            </Button>
+            {(order.status === 'in_progress' || order.status === 'revision') && onDeliver && (
+              <Button 
+                className="flex-1 sm:flex-auto"
+                onClick={() => onDeliver(order)}
+              >
+                Deliver Work
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>
-      <CardFooter className="pt-0">
-        <div className="flex gap-2 w-full">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={() => onViewDetails(order)}
-          >
-            <ExternalLink className="mr-2 h-4 w-4" />
-            View Details
-          </Button>
-          {onDeliver && order.status === 'in_progress' && (
-            <Button 
-              size="sm" 
-              className="flex-1"
-              onClick={() => onDeliver(order)}
-            >
-              <FileText className="mr-2 h-4 w-4" />
-              Deliver Work
-            </Button>
-          )}
-        </div>
-      </CardFooter>
     </Card>
   );
 }
