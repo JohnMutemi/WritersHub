@@ -22,10 +22,25 @@ export async function hashPassword(password: string) {
 }
 
 export async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+  try {
+    // Handle passwords with the correct format (hash.salt)
+    if (stored.includes('.')) {
+      const [hashed, salt] = stored.split(".");
+      const hashedBuf = Buffer.from(hashed, "hex");
+      const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+      return timingSafeEqual(hashedBuf, suppliedBuf);
+    } 
+    // Handle passwords that might use a different format (for compatibility with existing data)
+    else {
+      // For existing passwords that might be in a different format, we'll need
+      // to adapt the comparison logic or ideally migrate all passwords to the same format
+      console.log("Password is in a non-standard format. Consider updating it.");
+      return false;
+    }
+  } catch (error) {
+    console.error("Error comparing passwords:", error);
+    return false;
+  }
 }
 
 export function setupAuth(app: Express) {
