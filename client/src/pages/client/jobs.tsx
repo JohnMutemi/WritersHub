@@ -123,28 +123,41 @@ export default function ClientJobs() {
     try {
       // If exact time is specified, adjust the deadline date to include the time
       let finalDeadline = new Date(values.deadline);
+      
       if (values.exactTime) {
-        const hour24 = values.ampm === "PM" && parseInt(values.hour) < 12 
-          ? parseInt(values.hour) + 12 
-          : (values.ampm === "AM" && values.hour === "12" ? 0 : parseInt(values.hour));
-          
+        // Convert 12-hour format to 24-hour format
+        let hour24 = parseInt(values.hour);
+        if (values.ampm === "PM" && hour24 < 12) {
+          hour24 += 12;
+        } else if (values.ampm === "AM" && hour24 === 12) {
+          hour24 = 0;
+        }
+        
+        // Set the hours and minutes
         finalDeadline.setHours(hour24, parseInt(values.minute), 0, 0);
+        
+        // Format the time for display in 12-hour format with leading zeros
+        const formattedHour = values.hour.padStart(2, '0');
+        const formattedMinute = values.minute.padStart(2, '0');
+        const exactTimeString = `EXACT DEADLINE TIME: ${formattedHour}:${formattedMinute} ${values.ampm}`;
+        
+        // Add to additional instructions
+        if (values.additionalInstructions) {
+          values.additionalInstructions += `\n\n${exactTimeString}`;
+        } else {
+          values.additionalInstructions = exactTimeString;
+        }
+      } else {
+        // If exact time is not specified, set time to end of day (11:59 PM)
+        finalDeadline.setHours(23, 59, 59, 999);
       }
-
-      // Calculate days from now until deadline (the backend expects an integer for days)
-      const today = new Date();
-      const differenceInTime = finalDeadline.getTime() - today.getTime();
-      const differenceInDays = Math.ceil(differenceInTime / (1000 * 3600 * 24));
       
       // Handle file upload if present
       let attachmentUrl = "";
       let additionalInstructions = values.additionalInstructions || "";
       
       if (values.attachmentFile) {
-        // For now, we'll simulate a file upload by creating a placeholder URL
-        // In a real application, you would upload to a storage service and get a URL back
-        
-        // For demo purposes, we'll include file information in the additional instructions
+        // For demo purposes, include file information in the additional instructions
         const fileInfo = `
           
 FILE ATTACHMENT INFO:
@@ -157,30 +170,17 @@ Type: ${values.attachmentFile.type}
         additionalInstructions += fileInfo;
         
         // Note: In a real app, implement actual file upload to a service like S3 here
-        // and set attachmentUrl to the resulting URL
         attachmentUrl = `placeholder-${values.attachmentFile.name.replace(/\s+/g, '-')}`;
       }
       
-      // Store exact time information in additional instructions if specified
-      if (values.exactTime) {
-        const timeInfo = `
-          
-EXACT DEADLINE TIME: ${values.hour}:${values.minute} ${values.ampm}
-`;
-        additionalInstructions += timeInfo;
-      }
-      
-      // Submit the job with all information
-      // Convert days to a timestamp for the deadline
-      const deadlineDate = new Date();
-      deadlineDate.setDate(deadlineDate.getDate() + differenceInDays);
-      
+      // Submit the job with the correctly formatted deadline
       createJobMutation.mutate({
         ...values,
         clientId: user.id,
-        deadline: deadlineDate,
+        deadline: finalDeadline,
         exactDeadlineTime: values.exactTime,
-        additionalInstructions
+        additionalInstructions,
+        attachmentUrl
       });
       
     } catch (error) {

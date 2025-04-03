@@ -17,9 +17,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Loader2, MoreVertical, Calendar, DollarSign, Users, Clock, Paperclip } from "lucide-react";
+import { Loader2, MoreVertical, Calendar, DollarSign, Users, Clock, Paperclip, Timer } from "lucide-react";
 import { Job, Order, BidWithDetails } from "@shared/schema";
 import { format } from "date-fns";
+import { DeadlineCountdown } from "./deadline-countdown";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -184,6 +185,10 @@ export function ClientJobList({ jobs, bids, isLoading, refetch }: ClientJobListP
                 <Calendar className="h-4 w-4" />
                 <span>Due: {format(new Date(job.deadline), "MMM d, yyyy")}</span>
               </div>
+              <div className="flex items-center gap-1">
+                <Timer className="h-4 w-4 text-muted-foreground" />
+                <DeadlineCountdown deadline={job.deadline} />
+              </div>
               <div className="flex items-center gap-1 text-muted-foreground">
                 <Users className="h-4 w-4" />
                 <span>{(bids[job.id] || []).length} bids</span>
@@ -248,6 +253,9 @@ export function ClientJobList({ jobs, bids, isLoading, refetch }: ClientJobListP
                   </div>
                   <div>
                     <span className="text-muted-foreground">Due:</span> {format(new Date(selectedJob.deadline), "MMM d, yyyy")}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Remaining:</span> <DeadlineCountdown deadline={selectedJob.deadline} />
                   </div>
                 </div>
                 <div className="text-sm">
