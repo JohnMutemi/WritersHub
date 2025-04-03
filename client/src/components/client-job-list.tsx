@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Loader2, MoreVertical, Calendar, DollarSign, Users } from "lucide-react";
+import { Loader2, MoreVertical, Calendar, DollarSign, Users, Clock, Paperclip } from "lucide-react";
 import { Job, Order, BidWithDetails } from "@shared/schema";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -188,6 +188,20 @@ export function ClientJobList({ jobs, bids, isLoading, refetch }: ClientJobListP
                 <Users className="h-4 w-4" />
                 <span>{(bids[job.id] || []).length} bids</span>
               </div>
+              {job.additionalInstructions && job.additionalInstructions.includes('EXACT DEADLINE TIME') && (
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  <span>
+                    {job.additionalInstructions.match(/EXACT DEADLINE TIME: ([0-9]{2}:[0-9]{2} [AP]M)/)?.[1] || 'Exact time specified'}
+                  </span>
+                </div>
+              )}
+              {job.additionalInstructions && job.additionalInstructions.includes('FILE ATTACHMENT INFO') && (
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Paperclip className="h-4 w-4" />
+                  <span>File attached</span>
+                </div>
+              )}
             </div>
           </CardContent>
           <CardFooter className="pt-2">
@@ -210,16 +224,68 @@ export function ClientJobList({ jobs, bids, isLoading, refetch }: ClientJobListP
 
       {/* Bids Dialog */}
       <Dialog open={showBids} onOpenChange={setShowBids}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
-            <DialogTitle>Bids for {selectedJob?.title}</DialogTitle>
+            <DialogTitle>Job Details & Bids</DialogTitle>
             <DialogDescription>
-              Review and accept bids from writers for this job.
+              Review job details and bids from writers.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          
+          {selectedJob && (
+            <div className="mb-4">
+              <div className="bg-muted p-3 rounded-md mb-3">
+                <h4 className="text-sm font-semibold mb-2">Job Details</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+                  <div>
+                    <span className="text-muted-foreground">Title:</span> {selectedJob.title}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Budget:</span> ${selectedJob.budget}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Category:</span> {selectedJob.category}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Due:</span> {format(new Date(selectedJob.deadline), "MMM d, yyyy")}
+                  </div>
+                </div>
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Description:</span>
+                  <p className="mt-1 line-clamp-3">{selectedJob.description}</p>
+                </div>
+                
+                {/* Show exact time if available */}
+                {selectedJob.additionalInstructions && selectedJob.additionalInstructions.includes('EXACT DEADLINE TIME') && (
+                  <div className="flex items-center gap-2 mt-2 text-sm">
+                    <Clock className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-muted-foreground">Exact Time:</span>
+                    <span>
+                      {selectedJob.additionalInstructions.match(/EXACT DEADLINE TIME: ([0-9]{2}:[0-9]{2} [AP]M)/)?.[1] || 'Exact time specified'}
+                    </span>
+                  </div>
+                )}
+                
+                {/* Show attachment info if available */}
+                {selectedJob.additionalInstructions && selectedJob.additionalInstructions.includes('FILE ATTACHMENT INFO') && (
+                  <div className="flex items-start gap-2 mt-2 text-sm">
+                    <Paperclip className="h-3 w-3 text-muted-foreground mt-0.5" />
+                    <div>
+                      <span className="text-muted-foreground">Attachment:</span>
+                      <span className="block">
+                        {selectedJob.additionalInstructions.match(/Filename: ([^\n]+)/)?.[1] || 'File attached'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          <h4 className="text-sm font-semibold mb-2">Bids</h4>
+          <div className="py-2">
             {selectedJob && bids[selectedJob.id]?.length > 0 ? (
-              <ScrollArea className="h-[300px] pr-4">
+              <ScrollArea className="h-[250px] pr-4">
                 <div className="space-y-4">
                   {bids[selectedJob.id].map((bid) => (
                     <div key={bid.id} className="p-4 border rounded-lg">
@@ -242,7 +308,7 @@ export function ClientJobList({ jobs, bids, isLoading, refetch }: ClientJobListP
                           {bid.status.charAt(0).toUpperCase() + bid.status.slice(1)}
                         </Badge>
                       </div>
-                      <p className="text-sm mb-3">{bid.proposal}</p>
+                      <p className="text-sm mb-3">{bid.proposal || bid.coverLetter}</p>
                       {bid.status === "pending" && (
                         <Button
                           className="w-full"

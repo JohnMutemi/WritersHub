@@ -31,8 +31,11 @@ export const jobs = pgTable("jobs", {
   description: text("description").notNull(),
   category: text("category").notNull(),
   budget: doublePrecision("budget").notNull(),
-  deadline: integer("deadline").notNull(), // days
+  deadline: timestamp("deadline").notNull(),
+  exactDeadlineTime: boolean("exact_deadline_time").default(false),
   pages: integer("pages"),
+  attachmentUrl: text("attachment_url"),
+  additionalInstructions: text("additional_instructions"),
   status: jobStatusEnum("status").notNull().default('open'),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

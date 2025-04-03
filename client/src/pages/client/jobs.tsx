@@ -104,7 +104,13 @@ export default function ClientJobs() {
     },
   });
 
-  const handleCreateJob = (values: JobFormValues) => {
+  const handleCreateJob = async (values: JobFormValues & {
+    exactTime: boolean;
+    hour: string;
+    minute: string;
+    ampm: string;
+    attachmentFile: File | null;
+  }) => {
     if (!user) {
       toast({
         title: "Error",
@@ -114,17 +120,77 @@ export default function ClientJobs() {
       return;
     }
 
-    // Calculate days from now until deadline (the backend expects an integer for days)
-    const deadlineDate = new Date(values.deadline);
-    const today = new Date();
-    const differenceInTime = deadlineDate.getTime() - today.getTime();
-    const differenceInDays = Math.ceil(differenceInTime / (1000 * 3600 * 24));
-    
-    createJobMutation.mutate({
-      ...values,
-      clientId: user.id,
-      deadline: differenceInDays,
-    });
+    try {
+      // If exact time is specified, adjust the deadline date to include the time
+      let finalDeadline = new Date(values.deadline);
+      if (values.exactTime) {
+        const hour24 = values.ampm === "PM" && parseInt(values.hour) < 12 
+          ? parseInt(values.hour) + 12 
+          : (values.ampm === "AM" && values.hour === "12" ? 0 : parseInt(values.hour));
+          
+        finalDeadline.setHours(hour24, parseInt(values.minute), 0, 0);
+      }
+
+      // Calculate days from now until deadline (the backend expects an integer for days)
+      const today = new Date();
+      const differenceInTime = finalDeadline.getTime() - today.getTime();
+      const differenceInDays = Math.ceil(differenceInTime / (1000 * 3600 * 24));
+      
+      // Handle file upload if present
+      let attachmentUrl = "";
+      let additionalInstructions = values.additionalInstructions || "";
+      
+      if (values.attachmentFile) {
+        // For now, we'll simulate a file upload by creating a placeholder URL
+        // In a real application, you would upload to a storage service and get a URL back
+        
+        // For demo purposes, we'll include file information in the additional instructions
+        const fileInfo = `
+          
+FILE ATTACHMENT INFO:
+Filename: ${values.attachmentFile.name}
+Size: ${(values.attachmentFile.size / 1024).toFixed(1)} KB
+Type: ${values.attachmentFile.type}
+`;
+        
+        // Append file info to additional instructions
+        additionalInstructions += fileInfo;
+        
+        // Note: In a real app, implement actual file upload to a service like S3 here
+        // and set attachmentUrl to the resulting URL
+        attachmentUrl = `placeholder-${values.attachmentFile.name.replace(/\s+/g, '-')}`;
+      }
+      
+      // Store exact time information in additional instructions if specified
+      if (values.exactTime) {
+        const timeInfo = `
+          
+EXACT DEADLINE TIME: ${values.hour}:${values.minute} ${values.ampm}
+`;
+        additionalInstructions += timeInfo;
+      }
+      
+      // Submit the job with all information
+      // Convert days to a timestamp for the deadline
+      const deadlineDate = new Date();
+      deadlineDate.setDate(deadlineDate.getDate() + differenceInDays);
+      
+      createJobMutation.mutate({
+        ...values,
+        clientId: user.id,
+        deadline: deadlineDate,
+        exactDeadlineTime: values.exactTime,
+        additionalInstructions
+      });
+      
+    } catch (error) {
+      console.error("Error processing job submission:", error);
+      toast({
+        title: "Error",
+        description: "There was a problem processing your job submission. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
