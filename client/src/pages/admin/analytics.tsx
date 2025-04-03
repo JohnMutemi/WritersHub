@@ -14,6 +14,12 @@ import {
 import { ChevronDown, Download } from 'lucide-react';
 import { AdminStats } from '@shared/schema';
 
+// Job status chart colors - blues and greens
+const JOB_STATUS_COLORS = ['#3498db', '#2ecc71', '#1abc9c', '#16a085'];
+
+// User demographics chart colors - purples and pinks
+const USER_DEMOGRAPHICS_COLORS = ['#9b59b6', '#8e44ad', '#e74c3c', '#c0392b'];
+
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 const mockJobData = [
@@ -44,16 +50,16 @@ const mockRevenueData = [
 ];
 
 const mockStatusData = [
-  { name: 'Open', value: 15 },
-  { name: 'In Progress', value: 20 },
-  { name: 'Completed', value: 45 },
-  { name: 'Cancelled', value: 5 },
+  { name: 'Available Jobs', value: 15 },
+  { name: 'In-Progress Jobs', value: 20 },
+  { name: 'Completed Jobs', value: 45 },
+  { name: 'Cancelled Jobs', value: 5 },
 ];
 
 const mockUserData = [
-  { name: 'Writers', value: 40 },
-  { name: 'Clients', value: 55 },
-  { name: 'Admins', value: 5 },
+  { name: 'Content Writers', value: 40 },
+  { name: 'Business Clients', value: 55 },
+  { name: 'Platform Admins', value: 5 },
 ];
 
 export default function AdminAnalyticsPage() {
@@ -236,8 +242,8 @@ export default function AdminAnalyticsPage() {
           <div className="grid grid-cols-1 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Job Status Distribution</CardTitle>
-                <CardDescription>Current status of all jobs</CardDescription>
+                <CardTitle>Job Lifecycle Analysis</CardTitle>
+                <CardDescription>Breakdown of jobs by current status</CardDescription>
               </CardHeader>
               <CardContent className="h-[180px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -253,7 +259,7 @@ export default function AdminAnalyticsPage() {
                       label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
                     >
                       {mockStatusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell key={`cell-${index}`} fill={JOB_STATUS_COLORS[index % JOB_STATUS_COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip formatter={(value, name) => [`${value}`, name]} />
@@ -265,8 +271,8 @@ export default function AdminAnalyticsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>User Composition</CardTitle>
-                <CardDescription>Distribution of user roles</CardDescription>
+                <CardTitle>Platform User Demographics</CardTitle>
+                <CardDescription>Breakdown of users by role category</CardDescription>
               </CardHeader>
               <CardContent className="h-[180px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -282,7 +288,7 @@ export default function AdminAnalyticsPage() {
                       label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
                     >
                       {mockUserData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell key={`cell-${index}`} fill={USER_DEMOGRAPHICS_COLORS[index % USER_DEMOGRAPHICS_COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip formatter={(value, name) => [`${value}`, name]} />
