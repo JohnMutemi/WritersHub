@@ -181,10 +181,18 @@ Type: ${values.attachmentFile.type}
         deadline: finalDeadline,
         category: values.category,
         clientId: user.id,
-        exactDeadlineTime: values.exactTime,
-        additionalInstructions,
-        attachmentUrl
+        additionalInstructions: additionalInstructions,
+        attachmentUrl,
+        pages: values.pages || 1 // Default to 1 page if not specified
       };
+      
+      // Include style reference information in additional instructions
+      // Access styleReference from values using type assertion
+      const styleReference = (values as any).styleReference;
+      if (styleReference && styleReference !== "None") {
+        const styleInfo = `Style Reference: ${styleReference}`;
+        jobData.additionalInstructions = styleInfo + "\n\n" + jobData.additionalInstructions;
+      }
       
       // Submit the job with the correctly formatted data
       createJobMutation.mutate(jobData);

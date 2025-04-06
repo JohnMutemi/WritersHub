@@ -16,7 +16,7 @@ import type {
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
-import { eq, and, desc, asc } from "drizzle-orm";
+import { eq, and, desc, asc, sql } from "drizzle-orm";
 
 const PostgresStore = connectPg(session);
 
@@ -190,12 +190,62 @@ export class DatabaseStorage implements IStorage {
   
   // Job methods
   async getJobs(): Promise<Job[]> {
-    return await db.select().from(jobs);
+    try {
+      // First, try to use a regular select
+      return await db.select().from(jobs);
+    } catch (error) {
+      // If the regular select fails (e.g., due to missing columns), fall back to a specific column list
+      console.warn("Using fallback method for getJobs due to schema mismatch:", error);
+      
+      const results = await db.select({
+        id: jobs.id,
+        clientId: jobs.clientId,
+        title: jobs.title,
+        description: jobs.description,
+        category: jobs.category,
+        budget: jobs.budget,
+        deadline: jobs.deadline,
+        pages: jobs.pages,
+        attachmentUrl: jobs.attachmentUrl,
+        additionalInstructions: jobs.additionalInstructions,
+        status: jobs.status,
+        createdAt: jobs.createdAt,
+        // Add a default value for exactDeadlineTime that matches the schema type
+        exactDeadlineTime: false as (boolean | null)
+      }).from(jobs);
+      
+      return results;
+    }
   }
   
   async getJob(id: number): Promise<Job | undefined> {
-    const result = await db.select().from(jobs).where(eq(jobs.id, id));
-    return result[0];
+    try {
+      // First try to use the regular select
+      const result = await db.select().from(jobs).where(eq(jobs.id, id));
+      return result[0];
+    } catch (error) {
+      // If the regular select fails, fall back to a specific column list
+      console.warn("Using fallback method for getJob due to schema mismatch:", error);
+      
+      const result = await db.select({
+        id: jobs.id,
+        clientId: jobs.clientId,
+        title: jobs.title,
+        description: jobs.description,
+        category: jobs.category,
+        budget: jobs.budget,
+        deadline: jobs.deadline,
+        pages: jobs.pages,
+        attachmentUrl: jobs.attachmentUrl,
+        additionalInstructions: jobs.additionalInstructions,
+        status: jobs.status,
+        createdAt: jobs.createdAt,
+        // Add a default value for exactDeadlineTime that matches the schema type
+        exactDeadlineTime: false as (boolean | null)
+      }).from(jobs).where(eq(jobs.id, id));
+      
+      return result[0];
+    }
   }
   
   async createJob(job: InsertJob): Promise<Job> {

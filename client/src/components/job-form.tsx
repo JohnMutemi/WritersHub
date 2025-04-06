@@ -48,6 +48,10 @@ const jobFormSchema = insertJobSchema.extend({
   category: z.string().default("General"),
   // Additional fields
   additionalInstructions: z.string().optional(),
+  // Pages - number of pages required
+  pages: z.coerce.number().min(1).optional(),
+  // Style reference - APA, MLA, etc.
+  styleReference: z.string().optional(),
 });
 
 // For the file upload and time, we'll add them separately to the form state
@@ -85,6 +89,8 @@ export function JobForm({ onSubmit, isPending, defaultValues }: JobFormProps) {
       deadline: defaultValues?.deadline || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default to 1 week from now
       category: defaultValues?.category || "General",
       additionalInstructions: defaultValues?.additionalInstructions || "",
+      pages: defaultValues?.pages || 1,
+      styleReference: defaultValues?.styleReference || "None",
     },
   });
 
@@ -232,6 +238,56 @@ export function JobForm({ onSubmit, isPending, defaultValues }: JobFormProps) {
                 </Select>
                 <FormDescription>
                   Select the type of writing needed.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-5">
+          <FormField
+            control={form.control}
+            name="pages"
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormLabel>Number of Pages</FormLabel>
+                <FormControl>
+                  <Input type="number" min={1} step={1} {...field} />
+                </FormControl>
+                <FormDescription>
+                  How many pages of content do you need?
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="styleReference"
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormLabel>Style Reference</FormLabel>
+                <Select 
+                  defaultValue={field.value} 
+                  onValueChange={field.onChange}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a style" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="APA">APA</SelectItem>
+                    <SelectItem value="MLA">MLA</SelectItem>
+                    <SelectItem value="Chicago">Chicago</SelectItem>
+                    <SelectItem value="Harvard">Harvard</SelectItem>
+                    <SelectItem value="None">None</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Academic formatting style if applicable.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
