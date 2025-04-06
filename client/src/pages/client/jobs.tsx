@@ -181,7 +181,7 @@ Type: ${values.attachmentFile.type}
         deadline: finalDeadline,
         category: values.category,
         clientId: user.id,
-        status: 'open',
+        exactDeadlineTime: values.exactTime,
         additionalInstructions,
         attachmentUrl
       };
@@ -235,12 +235,11 @@ Type: ${values.attachmentFile.type}
 
       {/* New Job Dialog */}
       <Dialog open={showNewJobDialog} onOpenChange={setShowNewJobDialog}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle className="text-2xl">Post a New Job</DialogTitle>
+            <DialogTitle>Post a New Job</DialogTitle>
             <DialogDescription>
-              Create a detailed job posting to attract qualified writers. Be specific about your requirements, 
-              deadline, and provide supporting materials to get the best results.
+              Fill out the form below to create a new writing job.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
