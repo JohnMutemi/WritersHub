@@ -240,179 +240,212 @@ export function JobForm({ onSubmit, isPending, defaultValues }: JobFormProps) {
         </div>
 
         {/* Deadline section with time */}
-        <div className="space-y-4">
-          <FormField
-            control={form.control}
-            name="deadline"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Deadline Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                <FormDescription>
-                  Select the date when you need this project completed.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <div className="border rounded-lg p-5 bg-muted/30">
+          <h3 className="text-lg font-medium mb-4 flex items-center">
+            <CalendarIcon className="h-5 w-5 mr-2 text-primary" />
+            Set Deadline
+          </h3>
+          
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="deadline"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Deadline Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormDescription>
+                    Select the date when you need this project completed.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <div>
-            <div className="flex items-center space-x-2 mb-4">
-              <Switch 
-                id="exact-time" 
-                checked={exactTime}
-                onCheckedChange={setExactTime}
-              />
-              <Label htmlFor="exact-time" className="flex items-center cursor-pointer">
-                <Clock className="h-4 w-4 mr-2" />
-                Specify exact time
-              </Label>
-            </div>
-
-            {exactTime && (
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <Label htmlFor="deadline-hour">Hour</Label>
-                  <Select value={hour} onValueChange={setHour}>
-                    <SelectTrigger id="deadline-hour">
-                      <SelectValue placeholder="Hour" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {hourOptions.map(h => (
-                        <SelectItem key={h} value={h}>{h}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="deadline-minute">Minute</Label>
-                  <Select value={minute} onValueChange={setMinute}>
-                    <SelectTrigger id="deadline-minute">
-                      <SelectValue placeholder="Minute" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {minuteOptions.map(m => (
-                        <SelectItem key={m} value={m}>{m}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="deadline-ampm">AM/PM</Label>
-                  <Select value={ampm} onValueChange={setAmpm}>
-                    <SelectTrigger id="deadline-ampm">
-                      <SelectValue placeholder="AM/PM" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="AM">AM</SelectItem>
-                      <SelectItem value="PM">PM</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            <div className="bg-background p-3 rounded-md">
+              <div className="flex items-center space-x-2 mb-4">
+                <Switch 
+                  id="exact-time" 
+                  checked={exactTime}
+                  onCheckedChange={setExactTime}
+                />
+                <Label htmlFor="exact-time" className="flex items-center cursor-pointer">
+                  <Clock className="h-4 w-4 mr-2 text-amber-600" />
+                  Specify exact time (recommended)
+                </Label>
               </div>
-            )}
+
+              {exactTime ? (
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <Label htmlFor="deadline-hour">Hour</Label>
+                    <Select value={hour} onValueChange={setHour}>
+                      <SelectTrigger id="deadline-hour">
+                        <SelectValue placeholder="Hour" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {hourOptions.map(h => (
+                          <SelectItem key={h} value={h}>{h}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="deadline-minute">Minute</Label>
+                    <Select value={minute} onValueChange={setMinute}>
+                      <SelectTrigger id="deadline-minute">
+                        <SelectValue placeholder="Minute" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {minuteOptions.map(m => (
+                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="deadline-ampm">AM/PM</Label>
+                    <Select value={ampm} onValueChange={setAmpm}>
+                      <SelectTrigger id="deadline-ampm">
+                        <SelectValue placeholder="AM/PM" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AM">AM</SelectItem>
+                        <SelectItem value="PM">PM</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">
+                  Without a specific time, deadline will default to 11:59 PM on the selected date.
+                </p>
+              )}
+            </div>
           </div>
         </div>
         
         {/* File attachment */}
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="attachment" className="block mb-2">Attachment</Label>
-            <div className="flex items-center gap-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="flex items-center gap-2"
-                onClick={() => document.getElementById('attachment-input')?.click()}
-              >
-                <Paperclip className="h-4 w-4" />
-                {attachmentFile ? 'Change File' : 'Attach File'}
-              </Button>
-              <Input 
-                id="attachment-input"
-                type="file" 
-                className="hidden"
-                onChange={handleFileChange}
-              />
-              {fileError && (
-                <p className="text-sm text-destructive">{fileError}</p>
-              )}
-            </div>
-            {attachmentFile && (
-              <div className="mt-2 p-2 bg-muted rounded flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm">
-                  <Paperclip className="h-4 w-4" />
-                  <span className="truncate max-w-[200px]">{attachmentFile.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    ({(attachmentFile.size / 1024).toFixed(1)} KB)
-                  </span>
+        <div className="border rounded-lg p-5 bg-muted/30">
+          <h3 className="text-lg font-medium mb-4 flex items-center">
+            <Paperclip className="h-5 w-5 mr-2 text-primary" />
+            Additional Information & Attachments
+          </h3>
+          
+          <div className="space-y-4">
+            <div className="bg-background p-4 rounded-md">
+              <Label htmlFor="attachment" className="block mb-2 font-medium">Job Resources</Label>
+              <div className="border-2 border-dashed rounded-lg p-6 text-center hover:bg-muted/50 transition-colors">
+                <div className="mb-4">
+                  {!attachmentFile ? (
+                    <Paperclip className="h-8 w-8 mx-auto text-muted-foreground" />
+                  ) : (
+                    <div className="flex justify-center">
+                      <div className="relative w-16 h-16 bg-muted rounded-lg flex items-center justify-center">
+                        <Paperclip className="h-8 w-8 text-primary" />
+                        <div className="absolute -top-2 -right-2">
+                          <Button 
+                            type="button" 
+                            variant="destructive" 
+                            size="icon" 
+                            className="h-6 w-6 rounded-full"
+                            onClick={removeFile}
+                          >
+                            <X className="h-3 w-3" />
+                            <span className="sr-only">Remove file</span>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={removeFile}
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="h-4 w-4" />
-                  <span className="sr-only">Remove file</span>
-                </Button>
+                
+                {attachmentFile ? (
+                  <div className="text-sm">
+                    <p className="font-semibold truncate">{attachmentFile.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(attachmentFile.size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="flex items-center gap-2 mx-auto"
+                      onClick={() => document.getElementById('attachment-input')?.click()}
+                    >
+                      <Paperclip className="h-4 w-4" />
+                      Attach File
+                    </Button>
+                    <Input 
+                      id="attachment-input"
+                      type="file" 
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Max 5MB. Supported formats: PDF, DOCX, XLSX, TXT, JPG, PNG.
+                    </p>
+                  </>
+                )}
+                
+                {fileError && (
+                  <p className="text-sm text-destructive mt-2">{fileError}</p>
+                )}
               </div>
-            )}
-            <p className="text-sm text-muted-foreground mt-2">
-              Upload instructions or reference materials. Max 5MB. Supported formats: PDF, DOCX, XLSX, TXT, JPG, PNG.
-            </p>
-          </div>
+            </div>
 
-          {/* Additional instructions */}
-          <FormField
-            control={form.control}
-            name="additionalInstructions"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Additional Instructions</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Any additional instructions or details about the attached file..."
-                    className="min-h-[100px]"
-                    {...field}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Provide context for the attached file or any specific instructions.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            {/* Additional instructions */}
+            <FormField
+              control={form.control}
+              name="additionalInstructions"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Additional Instructions</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Include any specific requirements, references, sources to be used, or special instructions for the writer. If you've attached a file, describe what it contains and how it should be used."
+                      className="min-h-[120px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Providing clear instructions helps writers deliver exactly what you need.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
         
         <Button type="submit" className="w-full sm:w-auto" disabled={isPending}>

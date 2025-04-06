@@ -229,11 +229,12 @@ Type: ${values.attachmentFile.type}
 
       {/* New Job Dialog */}
       <Dialog open={showNewJobDialog} onOpenChange={setShowNewJobDialog}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Post a New Job</DialogTitle>
+            <DialogTitle className="text-2xl">Post a New Job</DialogTitle>
             <DialogDescription>
-              Fill out the form below to create a new writing job.
+              Create a detailed job posting to attract qualified writers. Be specific about your requirements, 
+              deadline, and provide supporting materials to get the best results.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
