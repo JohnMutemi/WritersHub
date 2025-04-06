@@ -34,6 +34,8 @@ export const jobs = pgTable("jobs", {
   deadline: integer("deadline").notNull(), // days
   pages: integer("pages"),
   status: jobStatusEnum("status").notNull().default('open'),
+  attachments: text("attachments"), // Comma-separated list of file paths
+  metadata: text("metadata"), // JSON string for additional job info
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

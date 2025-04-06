@@ -13,7 +13,8 @@ import {
   Tag, 
   LayoutGrid,
   MoreHorizontal,
-  Info
+  Info,
+  Paperclip
 } from 'lucide-react';
 import { format, formatDistance } from "date-fns";
 import {
@@ -157,6 +158,30 @@ export function JobCard({ job, onBid, onView }: JobCardProps) {
             <p className="text-sm text-muted-foreground whitespace-pre-line">
               {job.description}
             </p>
+            
+            {/* Display attached files if available */}
+            {job.attachments && job.attachments.length > 0 && (
+              <div className="mt-3 border-t pt-3">
+                <h4 className="text-sm font-medium flex items-center mb-2">
+                  <Paperclip className="h-3.5 w-3.5 mr-1.5" />
+                  Attached Files
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {job.attachments.split(',').map((file, index) => (
+                    <a 
+                      key={index}
+                      href={`/uploads/${file.trim()}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs bg-muted/50 hover:bg-muted px-2 py-1 rounded-md flex items-center"
+                    >
+                      <Paperclip className="h-3 w-3 mr-1.5" />
+                      {file.trim().split('/').pop()}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
