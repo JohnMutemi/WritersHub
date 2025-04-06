@@ -104,13 +104,7 @@ export default function ClientJobs() {
     },
   });
 
-  const handleCreateJob = async (values: JobFormValues & {
-    exactTime: boolean;
-    hour: string;
-    minute: string;
-    ampm: string;
-    attachmentFile: File | null;
-  }) => {
+  const handleCreateJob = (values: JobFormValues) => {
     if (!user) {
       toast({
         title: "Error",
@@ -120,91 +114,17 @@ export default function ClientJobs() {
       return;
     }
 
-    try {
-      // If exact time is specified, adjust the deadline date to include the time
-      let finalDeadline = new Date(values.deadline);
-      
-      if (values.exactTime) {
-        // Convert 12-hour format to 24-hour format
-        let hour24 = parseInt(values.hour);
-        if (values.ampm === "PM" && hour24 < 12) {
-          hour24 += 12;
-        } else if (values.ampm === "AM" && hour24 === 12) {
-          hour24 = 0;
-        }
-        
-        // Set the hours and minutes
-        finalDeadline.setHours(hour24, parseInt(values.minute), 0, 0);
-        
-        // Format the time for display in 12-hour format with leading zeros
-        const formattedHour = values.hour.padStart(2, '0');
-        const formattedMinute = values.minute.padStart(2, '0');
-        const exactTimeString = `EXACT DEADLINE TIME: ${formattedHour}:${formattedMinute} ${values.ampm}`;
-        
-        // Add to additional instructions
-        if (values.additionalInstructions) {
-          values.additionalInstructions += `\n\n${exactTimeString}`;
-        } else {
-          values.additionalInstructions = exactTimeString;
-        }
-      } else {
-        // If exact time is not specified, set time to end of day (11:59 PM)
-        finalDeadline.setHours(23, 59, 59, 999);
-      }
-      
-      // Handle file upload if present
-      let attachmentUrl = "";
-      let additionalInstructions = values.additionalInstructions || "";
-      
-      if (values.attachmentFile) {
-        // For demo purposes, include file information in the additional instructions
-        const fileInfo = `
-          
-FILE ATTACHMENT INFO:
-Filename: ${values.attachmentFile.name}
-Size: ${(values.attachmentFile.size / 1024).toFixed(1)} KB
-Type: ${values.attachmentFile.type}
-`;
-        
-        // Append file info to additional instructions
-        additionalInstructions += fileInfo;
-        
-        // Note: In a real app, implement actual file upload to a service like S3 here
-        attachmentUrl = `placeholder-${values.attachmentFile.name.replace(/\s+/g, '-')}`;
-      }
-      
-      // Create job data to submit, matching the server schema expectations
-      const jobData = {
-        title: values.title,
-        description: values.description,
-        budget: values.budget,
-        deadline: finalDeadline,
-        category: values.category,
-        clientId: user.id,
-        additionalInstructions: additionalInstructions,
-        attachmentUrl,
-        pages: values.pages || 1 // Default to 1 page if not specified
-      };
-      
-      // Include style reference information in additional instructions
-      // Access styleReference from values using type assertion
-      const styleReference = (values as any).styleReference;
-      if (styleReference && styleReference !== "None") {
-        const styleInfo = `Style Reference: ${styleReference}`;
-        jobData.additionalInstructions = styleInfo + "\n\n" + jobData.additionalInstructions;
-      }
-      
-      // Submit the job with the correctly formatted data
-      createJobMutation.mutate(jobData);
-      
-    } catch (error) {
-      console.error("Error processing job submission:", error);
-      toast({
-        title: "Error",
-        description: "There was a problem processing your job submission. Please try again.",
-        variant: "destructive",
-      });
-    }
+    // Calculate days from now until deadline (the backend expects an integer for days)
+    const deadlineDate = new Date(values.deadline);
+    const today = new Date();
+    const differenceInTime = deadlineDate.getTime() - today.getTime();
+    const differenceInDays = Math.ceil(differenceInTime / (1000 * 3600 * 24));
+    
+    createJobMutation.mutate({
+      ...values,
+      clientId: user.id,
+      deadline: differenceInDays,
+    });
   };
 
   return (
