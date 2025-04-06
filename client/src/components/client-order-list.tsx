@@ -32,7 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, MoreVertical, CheckCircle, AlertCircle, FileText } from "lucide-react";
+import { Loader2, MoreVertical, CheckCircle, AlertCircle, FileText, Calendar, DollarSign, Users } from "lucide-react";
 
 interface ClientOrderListProps {
   orders: OrderWithDetails[];
@@ -136,74 +136,139 @@ export function ClientOrderList({ orders, isLoading }: ClientOrderListProps) {
     <div className="space-y-4">
       {orders.map((order) => (
         <Card key={order.id} className="overflow-hidden">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 border-b">
             <div className="flex justify-between items-start">
               <div>
-                <CardTitle className="text-xl">{order.jobTitle}</CardTitle>
-                <CardDescription className="mt-1">
-                  Order created on {format(new Date(order.createdAt), "MMM d, yyyy")}
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-xl">{order.jobTitle}</CardTitle>
+                  {getStatusBadge(order.status)}
+                </div>
+                <CardDescription className="mt-1 flex items-center gap-2">
+                  <span className="text-xs inline-flex items-center">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    Created: {format(new Date(order.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                  </span>
+                  <span className="text-xs inline-flex items-center">
+                    <span className="h-1 w-1 rounded-full bg-muted-foreground inline-block mx-1"></span>
+                    Order ID: #{order.id}
+                  </span>
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-2">
-                {getStatusBadge(order.status)}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <MoreVertical className="h-4 w-4" />
-                      <span className="sr-only">Open menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 px-2">
+                    <span className="mr-1">Actions</span>
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Order Actions</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSelectedOrder(order);
+                      setShowOrderDetails(true);
+                    }}
+                  >
+                    View Details
+                  </DropdownMenuItem>
+                  {order.status === "in_progress" && (
                     <DropdownMenuItem
                       onClick={() => {
                         setSelectedOrder(order);
-                        setShowOrderDetails(true);
+                        setShowRequestRevision(true);
                       }}
                     >
-                      View Details
+                      Request Revision
                     </DropdownMenuItem>
-                    {order.status === "in_progress" && (
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSelectedOrder(order);
-                          setShowRequestRevision(true);
-                        }}
-                      >
-                        Request Revision
-                      </DropdownMenuItem>
-                    )}
-                    {(order.status === "in_progress" || order.status === "revision") && (
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSelectedOrder(order);
-                          setShowReleasePayment(true);
-                        }}
-                      >
-                        Release Payment
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+                  )}
+                  {(order.status === "in_progress" || order.status === "revision") && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setShowReleasePayment(true);
+                      }}
+                    >
+                      Release Payment
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </CardHeader>
-          <CardContent className="pb-3">
-            <div className="flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <span className="font-semibold">Writer:</span> {order.writerUsername}
+          <CardContent className="py-4">
+            <div className="flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2 pb-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="rounded-md border p-3">
+                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Writer</h4>
+                  <p className="text-sm font-medium flex items-center">
+                    <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold mr-2 text-xs">
+                      {order.writerUsername?.charAt(0).toUpperCase() || 'W'}
+                    </div>
+                    {order.writerUsername}
+                  </p>
+                </div>
+                
+                <div className="rounded-md border p-3">
+                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Payment</h4>
+                  <p className="text-lg font-semibold flex items-center">
+                    <DollarSign className="h-4 w-4 mr-1 text-green-500" />
+                    ${order.amount.toFixed(2)}
+                  </p>
+                </div>
+                
+                <div className="rounded-md border p-3">
+                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Deadline</h4>
+                  <div className="text-sm font-medium">
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-1 text-blue-500" />
+                      {format(new Date(order.deadline), "MMMM d, yyyy")}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {Math.ceil((new Date(order.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days left
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <span className="font-semibold">Amount:</span> ${order.amount}
-              </div>
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <span className="font-semibold">Due date:</span> {format(new Date(order.deadline), "MMM d, yyyy")}
+              
+              {order.revisionNotes && (
+                <div className="bg-muted/30 rounded-md p-3">
+                  <h4 className="text-sm font-medium mb-2">Revision Notes:</h4>
+                  <p className="text-sm text-muted-foreground whitespace-pre-line">
+                    {order.revisionNotes}
+                  </p>
+                </div>
+              )}
+              
+              <div className="border rounded-md p-3">
+                <h4 className="text-xs font-medium text-muted-foreground mb-2">Deliverables</h4>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between py-1 px-3 bg-muted/40 rounded text-sm">
+                    <span className="flex items-center text-muted-foreground">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                      </svg>
+                      {order.status === "completed" ? "View delivered files" : "No files delivered yet"}
+                    </span>
+                    {order.status === "completed" && (
+                      <Button variant="ghost" size="sm" className="h-7 px-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                          <polyline points="7 10 12 15 17 10"></polyline>
+                          <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Download
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
-          <CardFooter className="pt-2">
-            <div className="flex flex-wrap gap-2">
+          <CardFooter className="pt-2 border-t">
+            <div className="flex flex-wrap gap-2 justify-end w-full">
               <Button
                 variant="outline"
                 size="sm"
@@ -212,7 +277,7 @@ export function ClientOrderList({ orders, isLoading }: ClientOrderListProps) {
                   setShowOrderDetails(true);
                 }}
               >
-                <FileText className="h-4 w-4 mr-1" /> Details
+                <FileText className="h-4 w-4 mr-1" /> View Details
               </Button>
               {order.status === "in_progress" && (
                 <Button
