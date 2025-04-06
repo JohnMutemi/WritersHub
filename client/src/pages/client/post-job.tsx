@@ -10,12 +10,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { InfoIcon } from "lucide-react";
+import { InfoIcon, Upload } from "lucide-react";
 
 // Form schema for job creation
 const jobSchema = z.object({
@@ -179,86 +179,132 @@ export default function ClientPostJob() {
                       />
                     </div>
                     
-                    <FormField
-                      control={form.control}
-                      name="budget"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Budget (USD)</FormLabel>
-                          <div className="flex items-center space-x-4">
-                            <Input
-                              type="number"
-                              min={10}
-                              className="w-24"
-                              {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                            />
-                            <div className="flex-1">
-                              <Slider
-                                defaultValue={[50]}
+                    <div className="grid grid-cols-1 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="budget"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Budget (USD)</FormLabel>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                              <Input
+                                type="number"
                                 min={10}
-                                max={500}
-                                step={5}
-                                value={[field.value]}
-                                onValueChange={(value) => field.onChange(value[0])}
+                                className="w-24"
+                                {...field}
+                                onChange={(e) => field.onChange(parseFloat(e.target.value))}
                               />
-                              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                                <span>$10</span>
-                                <span>$500+</span>
+                              <div className="flex-1">
+                                <Slider
+                                  defaultValue={[50]}
+                                  min={10}
+                                  max={500}
+                                  step={5}
+                                  value={[field.value]}
+                                  onValueChange={(value) => field.onChange(value[0])}
+                                />
+                                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                                  <span>$10</span>
+                                  <span>$500+</span>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <FormDescription>
-                            Writers can bid above or below this amount
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="deadline"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Deadline (days)</FormLabel>
-                          <div className="flex items-center space-x-4">
-                            <Input
-                              type="number"
-                              min={1}
-                              className="w-24"
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value))}
-                            />
-                            <div className="flex-1">
-                              <Slider
-                                defaultValue={[7]}
+                            <FormDescription>
+                              Writers can bid above or below this amount
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="deadline"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Deadline (days)</FormLabel>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                              <Input
+                                type="number"
                                 min={1}
-                                max={30}
-                                step={1}
-                                value={[field.value]}
-                                onValueChange={(value) => field.onChange(value[0])}
+                                className="w-24"
+                                {...field}
+                                onChange={(e) => field.onChange(parseInt(e.target.value))}
                               />
-                              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                                <span>1 day</span>
-                                <span>30 days</span>
+                              <div className="flex-1">
+                                <Slider
+                                  defaultValue={[7]}
+                                  min={1}
+                                  max={30}
+                                  step={1}
+                                  value={[field.value]}
+                                  onValueChange={(value) => field.onChange(value[0])}
+                                />
+                                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                                  <span>1 day</span>
+                                  <span>30 days</span>
+                                </div>
                               </div>
                             </div>
+                            <FormDescription>
+                              How soon you need the work completed
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="border rounded-md p-4">
+                        <h4 className="text-sm font-medium mb-3">Reference Materials (Optional)</h4>
+                        <div className="bg-muted/30 rounded-md p-3 mb-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div className="flex items-center">
+                              <Upload className="h-4 w-4 text-muted-foreground mr-2" />
+                              <span className="text-sm text-muted-foreground">Add files like examples, style guides, or other resources</span>
+                            </div>
+                            <Button variant="outline" size="sm" type="button" className="h-8 shrink-0">
+                              <Upload className="h-4 w-4 mr-1" />
+                              Upload Files
+                            </Button>
                           </div>
-                          <FormDescription>
-                            How soon you need the work completed
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Supported formats: PDF, DOC, DOCX, TXT, RTF, JPG, PNG (Max size: 10MB)
+                        </p>
+                      </div>
+                    </div>
                     
-                    <div className="flex justify-end">
+                    <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row gap-3 justify-end items-center">
                       <Button 
-                        type="submit"
+                        type="button" 
+                        variant="outline" 
+                        className="w-full sm:w-auto"
+                        onClick={() => form.reset()}
+                      >
+                        Reset Form
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        className="w-full sm:w-auto"
                         disabled={createJobMutation.isPending}
                       >
-                        {createJobMutation.isPending ? "Posting..." : "Post Job"}
+                        {createJobMutation.isPending ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Posting Job...
+                          </>
+                        ) : (
+                          <>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                              <path d="M12 5v14"></path>
+                              <path d="M5 12h14"></path>
+                            </svg>
+                            Post New Job
+                          </>
+                        )}
                       </Button>
                     </div>
                   </form>
