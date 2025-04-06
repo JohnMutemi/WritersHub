@@ -1,7 +1,10 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 import { 
   insertJobSchema, 
   insertBidSchema,
@@ -11,6 +14,39 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import { ZodError } from "zod";
+
+// Set up multer for file uploads
+const uploadsDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage_config = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const fileFilter = (req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allowedFileTypes = ['.pdf', '.doc', '.docx', '.txt', '.rtf', '.jpg', '.jpeg', '.png'];
+  const ext = path.extname(file.originalname).toLowerCase();
+  
+  if (allowedFileTypes.includes(ext)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only PDF, DOC, DOCX, TXT, RTF, JPG, PNG files are allowed.'));
+  }
+};
+
+const upload = multer({ 
+  storage: storage_config, 
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB max file size
+});
 
 // Middleware to check if user is authenticated
 const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
@@ -70,11 +106,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // File upload endpoint for jobs
+  app.post("/api/upload/job-files", hasRole(["client", "writer"]), upload.array('files', 5), (req, res) => {
+    try {
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ message: "No files were uploaded" });
+      }
+      
+      const fileData = files.map(file => ({
+        filename: file.filename,
+        originalName: file.originalname,
+        path: `/uploads/${file.filename}`,
+        size: file.size,
+        mimeType: file.mimetype
+      }));
+      
+      res.status(200).json(fileData);
+    } catch (error: any) {
+      res.status(500).json({ 
+        message: "Error uploading files", 
+        error: error?.message || "Unknown error occurred" 
+      });
+    }
+  });
+  
+  // Serve uploaded files
+  app.use('/uploads', (req, res, next) => {
+    // Security check to prevent directory traversal
+    if (req.url.includes('..')) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    next();
+  }, express.static(uploadsDir));
+  
   app.post("/api/jobs", hasRole(["client"]), async (req, res, next) => {
     try {
+      // Add file references if they exist
+      const { referenceFiles, ...jobData } = req.body;
+      
       const parsedData = insertJobSchema.parse({
-        ...req.body,
-        clientId: req.user.id
+        ...jobData,
+        clientId: req.user.id,
+        // Store file references in metadata if present
+        metadata: referenceFiles ? JSON.stringify({ referenceFiles }) : null
       });
       
       const job = await storage.createJob(parsedData);

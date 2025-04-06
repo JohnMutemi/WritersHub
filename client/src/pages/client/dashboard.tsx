@@ -25,6 +25,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -37,6 +38,9 @@ const jobFormSchema = z.object({
   budget: z.number().min(10, "Budget must be at least $10"),
   deadline: z.number().min(1, "Deadline must be at least 1 day"),
   pages: z.number().optional(),
+  referenceFiles: z.array(z.any()).optional(),
+  citationStyle: z.string().optional(),
+  dueTime: z.string().optional(),
 });
 
 export default function ClientDashboard() {
@@ -146,6 +150,9 @@ export default function ClientDashboard() {
       budget: 0,
       deadline: 7,
       pages: 0,
+      referenceFiles: [],
+      citationStyle: "",
+      dueTime: "",
     },
   });
 
@@ -520,8 +527,64 @@ export default function ClientDashboard() {
                           <Upload className="h-3.5 w-3.5 mr-1.5" />
                           Attach reference files (optional)
                         </span>
-                        <Button variant="outline" size="sm" className="h-7 text-xs px-2">Upload</Button>
+                        <Label htmlFor="file-upload" className="cursor-pointer">
+                          <Button variant="outline" size="sm" className="h-7 text-xs px-2" type="button">Upload</Button>
+                          <Input 
+                            id="file-upload" 
+                            type="file" 
+                            className="hidden" 
+                            multiple 
+                            accept=".pdf,.doc,.docx,.txt,.rtf,.jpg,.jpeg,.png"
+                            onChange={async (e) => {
+                              if (!e.target.files || e.target.files.length === 0) return;
+                              
+                              const formData = new FormData();
+                              for (let i = 0; i < e.target.files.length; i++) {
+                                formData.append('files', e.target.files[i]);
+                              }
+                              
+                              try {
+                                // Use fetch directly for FormData uploads
+                                const res = await fetch('/api/upload/job-files', {
+                                  method: 'POST',
+                                  body: formData,
+                                  // Don't set Content-Type header, it will be set automatically with boundary
+                                });
+                                
+                                const uploadedFiles = await res.json();
+                                
+                                toast({
+                                  title: "Files uploaded successfully",
+                                  description: `${uploadedFiles.length} files uploaded.`,
+                                });
+                                
+                                // Save file references to form data
+                                form.setValue('referenceFiles', uploadedFiles);
+                                
+                              } catch (error: any) {
+                                toast({
+                                  title: "File upload failed",
+                                  description: error?.message || "Failed to upload files. Please try again.",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                          />
+                        </Label>
                       </div>
+
+                      {form.watch('referenceFiles') && form.watch('referenceFiles').length > 0 && (
+                        <div className="mt-2 space-y-1.5">
+                          <p className="text-xs font-medium text-muted-foreground">Uploaded files:</p>
+                          <ul className="text-xs list-disc pl-4 space-y-1">
+                            {form.watch('referenceFiles')?.map((file: any, index: number) => (
+                              <li key={index} className="text-xs">
+                                {file?.originalName || file?.filename || 'File ' + (index + 1)}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
