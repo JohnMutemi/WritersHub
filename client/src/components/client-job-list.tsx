@@ -125,68 +125,129 @@ export function ClientJobList({ jobs, bids, isLoading, refetch }: ClientJobListP
     <div className="space-y-4">
       {jobs.map((job) => (
         <Card key={job.id} className="overflow-hidden">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 border-b">
             <div className="flex justify-between items-start">
               <div>
-                <CardTitle className="text-xl">{job.title}</CardTitle>
-                <CardDescription className="mt-1">
-                  Posted on {format(new Date(job.createdAt), "MMM d, yyyy")}
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-xl">{job.title}</CardTitle>
+                  {getStatusBadge(job.status)}
+                </div>
+                <CardDescription className="mt-1 flex items-center gap-2">
+                  <span className="text-xs inline-flex items-center">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    Posted: {format(new Date(job.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                  </span>
+                  <span className="text-xs inline-flex items-center">
+                    <span className="h-1 w-1 rounded-full bg-muted-foreground inline-block mx-1"></span>
+                    Job ID: #{job.id}
+                  </span>
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-2">
-                {getStatusBadge(job.status)}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <MoreVertical className="h-4 w-4" />
-                      <span className="sr-only">Open menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {job.status === "open" && (
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSelectedJob(job);
-                          setShowBids(true);
-                        }}
-                      >
-                        View Bids ({(bids[job.id] || []).length})
-                      </DropdownMenuItem>
-                    )}
-                    {job.status === "open" && (
-                      <DropdownMenuItem
-                        onClick={() => {
-                          if (window.confirm("Are you sure you want to cancel this job?")) {
-                            cancelJobMutation.mutate(job.id);
-                          }
-                        }}
-                      >
-                        Cancel Job
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 px-2">
+                    <span className="mr-1">Actions</span>
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Job Actions</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {job.status === "open" && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setSelectedJob(job);
+                        setShowBids(true);
+                      }}
+                    >
+                      View Bids ({(bids[job.id] || []).length})
+                    </DropdownMenuItem>
+                  )}
+                  {job.status === "open" && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        if (window.confirm("Are you sure you want to cancel this job?")) {
+                          cancelJobMutation.mutate(job.id);
+                        }
+                      }}
+                    >
+                      Cancel Job
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    onClick={() => {
+                      navigator.clipboard.writeText(job.description);
+                      toast({
+                        title: "Description copied",
+                        description: "Job description copied to clipboard",
+                      });
+                    }}
+                  >
+                    Copy Description
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </CardHeader>
-          <CardContent className="pb-3">
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-              {job.description}
-            </p>
-            <div className="flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <DollarSign className="h-4 w-4" />
-                <span>${job.budget}</span>
+          <CardContent className="py-4">
+            <div className="flex flex-col gap-4">
+              <div className="bg-muted/40 p-3 rounded-md">
+                <h4 className="text-sm font-medium mb-2">Description:</h4>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">
+                  {job.description}
+                </p>
               </div>
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                <span>Due: {format(new Date(job.deadline), "MMM d, yyyy")}</span>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="rounded-md border p-3">
+                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Budget</h4>
+                  <p className="text-lg font-semibold flex items-center">
+                    <DollarSign className="h-4 w-4 mr-1 text-green-500" />
+                    ${job.budget.toFixed(2)}
+                  </p>
+                </div>
+                
+                <div className="rounded-md border p-3">
+                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Deadline</h4>
+                  <p className="text-sm font-medium flex items-center">
+                    <Calendar className="h-4 w-4 mr-1 text-blue-500" />
+                    {format(new Date(job.deadline), "MMMM d, yyyy")}
+                    <span className="text-xs ml-1 text-muted-foreground">
+                      ({Math.ceil((new Date(job.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days left)
+                    </span>
+                  </p>
+                </div>
+                
+                <div className="rounded-md border p-3">
+                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Proposals</h4>
+                  <p className="text-sm font-medium flex items-center">
+                    <Users className="h-4 w-4 mr-1 text-purple-500" />
+                    {(bids[job.id] || []).length} writer bid{(bids[job.id] || []).length !== 1 ? 's' : ''}
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <Users className="h-4 w-4" />
-                <span>{(bids[job.id] || []).length} bids</span>
+              
+              <div className="border rounded-md p-3">
+                <h4 className="text-xs font-medium text-muted-foreground mb-2">Attachments & References</h4>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between py-1 px-3 bg-muted/40 rounded text-sm">
+                    <span className="flex items-center text-muted-foreground">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                        <path d="M12 2H2v10h10V2z"></path>
+                        <path d="M7 12v10h15V12H7z"></path>
+                      </svg>
+                      No attachments yet
+                    </span>
+                    <Button variant="ghost" size="sm" className="h-7 px-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                      </svg>
+                      Add Files
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -210,69 +271,149 @@ export function ClientJobList({ jobs, bids, isLoading, refetch }: ClientJobListP
 
       {/* Bids Dialog */}
       <Dialog open={showBids} onOpenChange={setShowBids}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-[650px]">
           <DialogHeader>
-            <DialogTitle>Bids for {selectedJob?.title}</DialogTitle>
-            <DialogDescription>
-              Review and accept bids from writers for this job.
+            <DialogTitle className="flex items-center">
+              <span className="mr-2">Bids for Job:</span> 
+              <span className="text-primary font-normal">{selectedJob?.title}</span>
+            </DialogTitle>
+            <DialogDescription className="flex justify-between items-center">
+              <span>Review and compare bids from qualified writers</span>
+              {selectedJob && (
+                <Badge variant="outline" className="ml-2">
+                  {(bids[selectedJob.id] || []).length} Proposal{(bids[selectedJob.id] || []).length !== 1 ? 's' : ''}
+                </Badge>
+              )}
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          
+          <div className="py-3">
             {selectedJob && bids[selectedJob.id]?.length > 0 ? (
-              <ScrollArea className="h-[300px] pr-4">
-                <div className="space-y-4">
-                  {bids[selectedJob.id].map((bid) => (
-                    <div key={bid.id} className="p-4 border rounded-lg">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h4 className="font-medium">{bid.writerUsername}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Bid: ${bid.amount} • {format(new Date(bid.createdAt), "MMM d, yyyy")}
-                          </p>
-                        </div>
-                        <Badge
-                          className={
-                            bid.status === "pending"
-                              ? "bg-yellow-500"
-                              : bid.status === "accepted"
-                              ? "bg-green-500"
-                              : "bg-red-500"
-                          }
-                        >
-                          {bid.status.charAt(0).toUpperCase() + bid.status.slice(1)}
-                        </Badge>
-                      </div>
-                      <p className="text-sm mb-3">{bid.proposal}</p>
-                      {bid.status === "pending" && (
-                        <Button
-                          className="w-full"
-                          size="sm"
-                          onClick={() =>
-                            acceptBidMutation.mutate({
-                              jobId: selectedJob.id,
-                              bidId: bid.id,
-                            })
-                          }
-                          disabled={acceptBidMutation.isPending}
-                        >
-                          {acceptBidMutation.isPending ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Processing...
-                            </>
-                          ) : (
-                            "Accept Bid"
-                          )}
-                        </Button>
-                      )}
-                    </div>
-                  ))}
+              <>
+                <div className="flex justify-between text-xs text-muted-foreground px-2 pb-2 mb-3 border-b">
+                  <span>Writer</span>
+                  <div className="flex gap-8">
+                    <span>Price</span>
+                    <span>Delivery</span>
+                    <span>Status</span>
+                  </div>
                 </div>
-              </ScrollArea>
+                
+                <ScrollArea className="h-[350px] pr-4">
+                  <div className="space-y-5">
+                    {bids[selectedJob.id].map((bid) => (
+                      <div key={bid.id} className="border rounded-lg overflow-hidden">
+                        <div className="flex justify-between items-center p-3 bg-muted/30">
+                          <div className="flex items-center">
+                            <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold mr-3">
+                              {bid.writerUsername?.charAt(0).toUpperCase() || 'W'}
+                            </div>
+                            <div>
+                              <h4 className="font-medium leading-tight">{bid.writerUsername}</h4>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Bid submitted {format(new Date(bid.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-6">
+                            <div className="flex flex-col items-end">
+                              <span className="font-semibold">${bid.amount.toFixed(2)}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {bid.amount > selectedJob.budget ? (
+                                  <span className="text-red-500">+${(bid.amount - selectedJob.budget).toFixed(2)}</span>
+                                ) : bid.amount < selectedJob.budget ? (
+                                  <span className="text-green-500">-${(selectedJob.budget - bid.amount).toFixed(2)}</span>
+                                ) : (
+                                  "Exact budget"
+                                )}
+                              </span>
+                            </div>
+                            
+                            <div className="flex flex-col items-end w-[80px]">
+                              <span className="font-medium">{bid.deliveryTime} days</span>
+                              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                {format(new Date(Date.now() + bid.deliveryTime * 24 * 60 * 60 * 1000), "MMM d, yyyy")}
+                              </span>
+                            </div>
+                            
+                            <Badge
+                              className={
+                                bid.status === "pending"
+                                  ? "bg-yellow-500"
+                                  : bid.status === "accepted"
+                                  ? "bg-green-500"
+                                  : "bg-red-500"
+                              }
+                            >
+                              {bid.status.charAt(0).toUpperCase() + bid.status.slice(1)}
+                            </Badge>
+                          </div>
+                        </div>
+                        
+                        <div className="p-4">
+                          <h5 className="text-sm font-medium mb-2">Proposal:</h5>
+                          <div className="mb-4 text-sm bg-muted/20 p-3 rounded whitespace-pre-line text-muted-foreground">
+                            {bid.proposal || bid.coverLetter}
+                          </div>
+                          
+                          {bid.status === "pending" && (
+                            <div className="flex justify-end space-x-2 mt-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  // You could implement a decline bid function here
+                                  if (window.confirm("Are you sure you want to decline this bid?")) {
+                                    // Logic for declining bid
+                                  }
+                                }}
+                              >
+                                Decline
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() =>
+                                  acceptBidMutation.mutate({
+                                    jobId: selectedJob.id,
+                                    bidId: bid.id,
+                                  })
+                                }
+                                disabled={acceptBidMutation.isPending}
+                              >
+                                {acceptBidMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Processing...
+                                  </>
+                                ) : (
+                                  "Accept Bid"
+                                )}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </>
             ) : (
-              <p className="text-center py-8 text-muted-foreground">
-                No bids have been placed on this job yet.
-              </p>
+              <div className="text-center py-12 px-6">
+                <div className="inline-flex justify-center items-center rounded-full bg-muted/50 w-12 h-12 mb-4">
+                  <Users className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="font-medium mb-1">No bids received yet</h3>
+                <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-6">
+                  Your job is live and writers can bid on it. Check back later or consider adjusting your job description or budget.
+                </p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowBids(false)}
+                >
+                  Close
+                </Button>
+              </div>
             )}
           </div>
         </DialogContent>

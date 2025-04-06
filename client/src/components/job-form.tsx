@@ -22,6 +22,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +64,18 @@ export function JobForm({ onSubmit, isPending, defaultValues }: JobFormProps) {
     },
   });
 
+  const categories = [
+    { value: "blog", label: "Blog Post" },
+    { value: "article", label: "Article" },
+    { value: "technical", label: "Technical Writing" },
+    { value: "creative", label: "Creative Writing" },
+    { value: "academic", label: "Academic Writing" },
+    { value: "copywriting", label: "Copywriting" },
+    { value: "content", label: "Content Writing" },
+    { value: "seo", label: "SEO Content" },
+    { value: "general", label: "General" },
+  ];
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -65,7 +84,7 @@ export function JobForm({ onSubmit, isPending, defaultValues }: JobFormProps) {
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Job Title</FormLabel>
+              <FormLabel>Job Title <span className="text-red-500">*</span></FormLabel>
               <FormControl>
                 <Input placeholder="E.g., Technical Blog Post on AI Development" {...field} />
               </FormControl>
@@ -77,16 +96,82 @@ export function JobForm({ onSubmit, isPending, defaultValues }: JobFormProps) {
           )}
         />
         
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <FormField
+            control={form.control}
+            name="category"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category <span className="text-red-500">*</span></FormLabel>
+                <Select 
+                  onValueChange={field.onChange} 
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.value} value={category.value}>
+                        {category.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Choose the type of content you need.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="pages"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Word Count (approx)</FormLabel>
+                <Select 
+                  onValueChange={(value) => field.onChange(parseInt(value))} 
+                  defaultValue={field.value?.toString()}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select word count" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="1">~500 words (1 page)</SelectItem>
+                    <SelectItem value="2">~1000 words (2 pages)</SelectItem>
+                    <SelectItem value="3">~1500 words (3 pages)</SelectItem>
+                    <SelectItem value="4">~2000 words (4 pages)</SelectItem>
+                    <SelectItem value="5">~2500 words (5 pages)</SelectItem>
+                    <SelectItem value="10">~5000 words (10 pages)</SelectItem>
+                    <SelectItem value="20">~10000 words (20 pages)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Estimate based on ~500 words per page.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
         <FormField
           control={form.control}
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>Description <span className="text-red-500">*</span></FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Detailed requirements, word count, style guidelines, etc."
-                  className="min-h-[150px]"
+                  placeholder="Provide detailed requirements for your writing project. Include audience, purpose, tone, style guidelines, and any specific sections or topics that should be covered."
+                  className="min-h-[180px]"
                   {...field}
                 />
               </FormControl>
@@ -98,13 +183,40 @@ export function JobForm({ onSubmit, isPending, defaultValues }: JobFormProps) {
           )}
         />
         
-        <div className="flex flex-col sm:flex-row gap-5">
+        <div className="border rounded-md p-4">
+          <h4 className="text-sm font-medium mb-3">Reference Materials (Optional)</h4>
+          <div className="bg-muted/30 rounded-md p-3 mb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground mr-2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <span className="text-sm text-muted-foreground">Add files like examples, style guides, or resources</span>
+              </div>
+              <Button variant="ghost" size="sm" type="button" className="h-8">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                  <path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8"></path>
+                  <path d="M22 20v-7"></path>
+                  <path d="M18 16l4 4 4-4"></path>
+                </svg>
+                Upload
+              </Button>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Supported formats: PDF, DOC, DOCX, TXT, RTF, JPG, PNG (Max size: 10MB)
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <FormField
             control={form.control}
             name="budget"
             render={({ field }) => (
-              <FormItem className="flex-1">
-                <FormLabel>Budget ($)</FormLabel>
+              <FormItem>
+                <FormLabel>Budget ($) <span className="text-red-500">*</span></FormLabel>
                 <FormControl>
                   <Input type="number" min={10} step={5} {...field} />
                 </FormControl>
@@ -120,8 +232,8 @@ export function JobForm({ onSubmit, isPending, defaultValues }: JobFormProps) {
             control={form.control}
             name="deadline"
             render={({ field }) => (
-              <FormItem className="flex-1">
-                <FormLabel>Deadline</FormLabel>
+              <FormItem>
+                <FormLabel>Deadline <span className="text-red-500">*</span></FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -133,7 +245,7 @@ export function JobForm({ onSubmit, isPending, defaultValues }: JobFormProps) {
                         )}
                       >
                         {field.value ? (
-                          format(field.value, "PPP")
+                          format(field.value, "EEEE, MMMM d, yyyy")
                         ) : (
                           <span>Pick a date</span>
                         )}
@@ -160,16 +272,36 @@ export function JobForm({ onSubmit, isPending, defaultValues }: JobFormProps) {
           />
         </div>
         
-        <Button type="submit" className="w-full sm:w-auto" disabled={isPending}>
-          {isPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Posting...
-            </>
-          ) : (
-            "Post Job"
-          )}
-        </Button>
+        <div className="pt-4 border-t flex flex-col sm:flex-row gap-3 justify-end items-center">
+          <Button 
+            type="button" 
+            variant="outline" 
+            className="w-full sm:w-auto"
+            onClick={() => form.reset()}
+          >
+            Reset Form
+          </Button>
+          <Button 
+            type="submit" 
+            className="w-full sm:w-auto"
+            disabled={isPending}
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Posting Job...
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                  <path d="M12 5v14"></path>
+                  <path d="M5 12h14"></path>
+                </svg>
+                Post New Job
+              </>
+            )}
+          </Button>
+        </div>
       </form>
     </Form>
   );
