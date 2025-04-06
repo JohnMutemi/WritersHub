@@ -10,7 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import { Job, Order, Bid } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Check, Clock, X } from "lucide-react";
+import { Loader2, Plus, Check, Clock, X, Upload } from "lucide-react";
 import { OrderItem } from "@/components/order-item";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -343,136 +343,217 @@ export default function ClientDashboard() {
 
       {/* Create Job Dialog */}
       <Dialog open={createJobOpen} onOpenChange={setCreateJobOpen}>
-        <DialogContent className="sm:max-w-[525px]">
+        <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Post a New Job</DialogTitle>
             <DialogDescription>
               Fill in the details of your writing job to attract qualified writers.
             </DialogDescription>
           </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Job Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Website Content for E-commerce Store" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Describe what you need in detail..." {...field} className="min-h-[100px]" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
+          
+          <div className="max-h-[calc(85vh-120px)] overflow-y-auto pr-2">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
                   control={form.control}
-                  name="category"
+                  name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Category</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormLabel>Job Title <span className="text-red-500">*</span></FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Website Content for E-commerce Store" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        A clear title helps attract the right writers
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category <span className="text-red-500">*</span></FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="blog">Blog Posts</SelectItem>
+                            <SelectItem value="website">Website Content</SelectItem>
+                            <SelectItem value="technical">Technical Writing</SelectItem>
+                            <SelectItem value="social">Social Media</SelectItem>
+                            <SelectItem value="marketing">Marketing</SelectItem>
+                            <SelectItem value="creative">Creative Writing</SelectItem>
+                            <SelectItem value="academic">Academic</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Choose the type of content you need
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="pages"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Word Count (approx)</FormLabel>
+                        <Select 
+                          onValueChange={(value) => field.onChange(parseInt(value))} 
+                          defaultValue={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select word count" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="1">~500 words (1 page)</SelectItem>
+                            <SelectItem value="2">~1000 words (2 pages)</SelectItem>
+                            <SelectItem value="3">~1500 words (3 pages)</SelectItem>
+                            <SelectItem value="4">~2000 words (4 pages)</SelectItem>
+                            <SelectItem value="5">~2500 words (5 pages)</SelectItem>
+                            <SelectItem value="10">~5000 words (10 pages)</SelectItem>
+                            <SelectItem value="20">~10000 words (20 pages)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Estimate based on ~500 words per page
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Job Description <span className="text-red-500">*</span></FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Provide detailed requirements for your writing project. Include audience, purpose, tone, style guidelines, and any specific sections or topics that should be covered."
+                          className="min-h-[150px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Be specific about your requirements, including target audience, tone, and any research needed
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="border rounded-md p-4">
+                  <h4 className="text-sm font-medium mb-3">Reference Materials (Optional)</h4>
+                  <div className="bg-muted/30 rounded-md p-3 mb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="flex items-center">
+                        <Upload className="h-4 w-4 text-muted-foreground mr-2" />
+                        <span className="text-sm text-muted-foreground">Add files like examples, style guides, or other resources</span>
+                      </div>
+                      <Button variant="outline" size="sm" type="button" className="h-8 shrink-0">
+                        <Upload className="h-4 w-4 mr-1" />
+                        Upload Files
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Supported formats: PDF, DOC, DOCX, TXT, RTF, JPG, PNG (Max size: 10MB)
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <FormField
+                    control={form.control}
+                    name="budget"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Budget ($) <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
+                          <Input
+                            type="number"
+                            min={10}
+                            step={5}
+                            {...field}
+                            onChange={e => field.onChange(parseFloat(e.target.value))}
+                          />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="blog">Blog Posts</SelectItem>
-                          <SelectItem value="website">Website Content</SelectItem>
-                          <SelectItem value="technical">Technical Writing</SelectItem>
-                          <SelectItem value="social">Social Media</SelectItem>
-                          <SelectItem value="marketing">Marketing</SelectItem>
-                          <SelectItem value="creative">Creative Writing</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="budget"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Budget ($)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          min="10" 
-                          placeholder="100" 
-                          {...field} 
-                          onChange={e => field.onChange(parseFloat(e.target.value))}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="deadline"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Deadline (Days)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          min="1" 
-                          placeholder="7" 
-                          {...field} 
-                          onChange={e => field.onChange(parseInt(e.target.value))}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="pages"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Pages (Optional)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          min="0" 
-                          placeholder="5" 
-                          {...field} 
-                          onChange={e => field.onChange(parseInt(e.target.value) || undefined)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <DialogFooter>
-                <Button type="submit" disabled={createJobMutation.isPending}>
-                  {createJobMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Post Job
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+                        <FormDescription>
+                          Your budget for this writing project
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="deadline"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Deadline (days) <span className="text-red-500">*</span></FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={1}
+                            {...field}
+                            onChange={e => field.onChange(parseInt(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          How soon you need the work completed
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <div className="pt-4 border-t flex flex-col sm:flex-row gap-3 justify-end items-center">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="w-full sm:w-auto"
+                    onClick={() => form.reset()}
+                  >
+                    Reset Form
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="w-full sm:w-auto"
+                    disabled={createJobMutation.isPending}
+                  >
+                    {createJobMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Posting Job...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Post New Job
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </div>
         </DialogContent>
       </Dialog>
 
