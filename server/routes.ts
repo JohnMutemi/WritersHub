@@ -12,6 +12,13 @@ import {
 import { z } from "zod";
 import { ZodError } from "zod";
 
+// Type guard function to ensure user exists
+function ensureUser(req: Request): asserts req is Request & { user: Express.User } {
+  if (!req.user) {
+    throw new Error('User not authenticated');
+  }
+}
+
 // Middleware to check if user is authenticated
 const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
   if (req.isAuthenticated()) {
@@ -23,7 +30,7 @@ const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
 // Middleware to check user role
 const hasRole = (roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
     
@@ -362,6 +369,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const stats = await storage.getAdminStats();
       res.json(stats);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Client-specific routes
+  app.get("/api/client/jobs", hasRole(["client"]), async (req, res, next) => {
+    try {
+      // Get jobs posted by the current client
+      const jobs = await storage.getJobs();
+      const clientJobs = jobs.filter(job => job.clientId === req.user.id);
+      res.json(clientJobs);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  app.get("/api/client/orders", hasRole(["client"]), async (req, res, next) => {
+    try {
+      const orders = await storage.getOrdersByClient(req.user.id);
+      res.json(orders);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  app.get("/api/client/stats", hasRole(["client"]), async (req, res, next) => {
+    try {
+      const stats = await storage.getClientStats(req.user.id);
+      res.json(stats);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  app.get("/api/client/bids", hasRole(["client"]), async (req, res, next) => {
+    try {
+      const bids = await storage.getBidsByClient(req.user.id);
+      res.json(bids);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  app.get("/api/jobs/:id/bids", isAuthenticated, async (req, res, next) => {
+    try {
+      const jobId = Number(req.params.id);
+      
+      // Verify the job exists
+      const job = await storage.getJob(jobId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // For clients, only show bids on their own jobs
+      if (req.user.role === 'client' && job.clientId !== req.user.id) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      
+      const bids = await storage.getBidsByJob(jobId);
+      
+      // Enhance bids with writer details
+      const bidsWithDetails = await Promise.all(bids.map(async (bid) => {
+        const writer = await storage.getUser(bid.writerId);
+        return {
+          ...bid,
+          writerUsername: writer?.username || 'Unknown',
+          writerName: writer?.fullName || writer?.username || 'Unknown',
+          proposal: bid.coverLetter // For compatibility with frontend
+        };
+      }));
+      
+      res.json(bidsWithDetails);
     } catch (error) {
       next(error);
     }

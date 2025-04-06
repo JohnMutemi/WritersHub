@@ -173,15 +173,21 @@ Type: ${values.attachmentFile.type}
         attachmentUrl = `placeholder-${values.attachmentFile.name.replace(/\s+/g, '-')}`;
       }
       
-      // Submit the job with the correctly formatted deadline
-      createJobMutation.mutate({
-        ...values,
-        clientId: user.id,
+      // Create job data to submit, matching the server schema expectations
+      const jobData = {
+        title: values.title,
+        description: values.description,
+        budget: values.budget,
         deadline: finalDeadline,
-        exactDeadlineTime: values.exactTime,
+        category: values.category,
+        clientId: user.id,
+        status: 'open',
         additionalInstructions,
         attachmentUrl
-      });
+      };
+      
+      // Submit the job with the correctly formatted data
+      createJobMutation.mutate(jobData);
       
     } catch (error) {
       console.error("Error processing job submission:", error);
