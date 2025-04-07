@@ -204,144 +204,163 @@ export function JobForm({ onSubmit, isPending, defaultValues }: JobFormProps) {
         />
         
         {/* File Upload Component */}
-        <div className="border rounded-md p-4">
-          <h4 className="text-sm font-medium mb-3">Reference Materials (Optional)</h4>
-          
-          {uploadError && (
-            <Alert variant="destructive" className="mb-3">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{uploadError}</AlertDescription>
-            </Alert>
-          )}
-          
-          {/* File uploader */}
-          <div className="bg-muted/30 rounded-md p-3 mb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Upload className="text-muted-foreground mr-2 h-4 w-4" />
-                <span className="text-sm text-muted-foreground">Add files like examples, style guides, or resources</span>
-              </div>
-              <div>
-                <input 
-                  type="file" 
-                  ref={fileInputRef}
-                  className="hidden" 
-                  onChange={async (event) => {
-                    if (!event.target.files || event.target.files.length === 0) return;
-                    
-                    // Check if adding more files would exceed the limit
-                    if (uploadedFiles.length + event.target.files.length > 5) {
-                      setUploadError(`You can only upload a maximum of 5 files.`);
-                      toast({
-                        title: "Too many files",
-                        description: `You can only upload a maximum of 5 files.`,
-                        variant: "destructive",
-                      });
-                      return;
-                    }
-                    
-                    const files = Array.from(event.target.files);
-                    const formData = new FormData();
-                    
-                    // Add each file to FormData
-                    files.forEach(file => {
-                      formData.append('files', file);
-                    });
-                    
-                    setIsUploading(true);
-                    setUploadError(null);
-                    
-                    try {
-                      const response = await apiRequest("POST", "/api/upload/job-files", formData, undefined, true);
-                      
-                      if (response.ok) {
-                        const data = await response.json();
-                        setUploadedFiles(prev => [...prev, ...data]);
-                        toast({
-                          title: "Files uploaded successfully",
-                          description: `${files.length} file${files.length > 1 ? 's' : ''} uploaded.`,
-                        });
-                      } else {
-                        const errorData = await response.json();
-                        throw new Error(errorData.message || "Failed to upload files");
-                      }
-                    } catch (error: any) {
-                      console.error("File upload error:", error);
-                      setUploadError(error.message || "An error occurred while uploading files");
-                      toast({
-                        title: "Upload failed",
-                        description: error.message || "Failed to upload files. Please try again.",
-                        variant: "destructive",
-                      });
-                    } finally {
-                      setIsUploading(false);
-                      // Reset the file input
-                      if (fileInputRef.current) {
-                        fileInputRef.current.value = "";
-                      }
-                    }
-                  }}
-                  multiple
-                  accept=".pdf,.doc,.docx,.txt,.rtf,.jpg,.jpeg,.png"
-                />
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  type="button" 
-                  className="h-8"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading || uploadedFiles.length >= 5}
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Paperclip className="mr-1 h-4 w-4" />
-                      {uploadedFiles.length >= 5 ? 'Max files reached' : 'Upload'}
-                    </>
-                  )}
-                </Button>
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Reference Materials Section */}
+          <div className="border rounded-md p-4">
+            <h4 className="text-sm font-medium mb-3">Reference Materials</h4>
+            
+            <div className="space-y-2">
+              <h5 className="text-sm font-normal">Reference Links</h5>
+              <Textarea 
+                placeholder="Paste links to reference materials (one per line)"
+                className="min-h-[100px]"
+              />
+              <p className="text-xs text-muted-foreground">
+                Add links to publicly accessible reference materials
+              </p>
             </div>
           </div>
-          
-          {/* Display uploaded files */}
-          {uploadedFiles.length > 0 && (
-            <div className="mb-3 space-y-2">
-              <h4 className="text-xs font-medium text-muted-foreground">Uploaded Files:</h4>
-              <div className="space-y-2">
-                {uploadedFiles.map((file, index) => (
-                  <div key={index} className="flex items-center justify-between bg-muted/20 rounded p-2 text-sm">
-                    <div className="flex items-center">
-                      <FileIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span className="truncate max-w-[200px]">{file.originalName}</span>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-6 w-6 p-0" 
-                      onClick={() => {
-                        const newFiles = [...uploadedFiles];
-                        newFiles.splice(index, 1);
-                        setUploadedFiles(newFiles);
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                      <span className="sr-only">Remove</span>
-                    </Button>
-                  </div>
-                ))}
+
+          {/* File Attachments Section */}
+          <div className="border rounded-md p-4">
+            <h4 className="text-sm font-medium mb-3">File Attachments</h4>
+            
+            {uploadError && (
+              <Alert variant="destructive" className="mb-3">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{uploadError}</AlertDescription>
+              </Alert>
+            )}
+            
+            {/* File uploader */}
+            <div className="bg-muted/30 rounded-md p-3 mb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Upload className="text-muted-foreground mr-2 h-4 w-4" />
+                  <span className="text-sm text-muted-foreground">Upload files</span>
+                </div>
+                <div>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    className="hidden" 
+                    onChange={async (event) => {
+                      if (!event.target.files || event.target.files.length === 0) return;
+                      
+                      // Check if adding more files would exceed the limit
+                      if (uploadedFiles.length + event.target.files.length > 5) {
+                        setUploadError(`You can only upload a maximum of 5 files.`);
+                        toast({
+                          title: "Too many files",
+                          description: `You can only upload a maximum of 5 files.`,
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      
+                      const files = Array.from(event.target.files);
+                      const formData = new FormData();
+                      
+                      // Add each file to FormData
+                      files.forEach(file => {
+                        formData.append('files', file);
+                      });
+                      
+                      setIsUploading(true);
+                      setUploadError(null);
+                      
+                      try {
+                        const response = await apiRequest("POST", "/api/upload/job-files", formData, undefined, true);
+                        
+                        if (response.ok) {
+                          const data = await response.json();
+                          setUploadedFiles(prev => [...prev, ...data]);
+                          toast({
+                            title: "Files uploaded successfully",
+                            description: `${files.length} file${files.length > 1 ? 's' : ''} uploaded.`,
+                          });
+                        } else {
+                          const errorData = await response.json();
+                          throw new Error(errorData.message || "Failed to upload files");
+                        }
+                      } catch (error: any) {
+                        console.error("File upload error:", error);
+                        setUploadError(error.message || "An error occurred while uploading files");
+                        toast({
+                          title: "Upload failed",
+                          description: error.message || "Failed to upload files. Please try again.",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setIsUploading(false);
+                        // Reset the file input
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = "";
+                        }
+                      }
+                    }}
+                    multiple
+                    accept=".pdf,.doc,.docx,.txt,.rtf,.jpg,.jpeg,.png"
+                  />
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    type="button" 
+                    className="h-8"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading || uploadedFiles.length >= 5}
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Paperclip className="mr-1 h-4 w-4" />
+                        {uploadedFiles.length >= 5 ? 'Max files reached' : 'Upload'}
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
-          )}
-          
-          <p className="text-xs text-muted-foreground">
-            Supported formats: PDF, DOC, DOCX, TXT, RTF, JPG, PNG (Max size: 10MB)
-          </p>
+            
+            {/* Display uploaded files */}
+            {uploadedFiles.length > 0 && (
+              <div className="mb-3 space-y-2">
+                <h4 className="text-xs font-medium text-muted-foreground">Uploaded Files:</h4>
+                <div className="space-y-2">
+                  {uploadedFiles.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between bg-muted/20 rounded p-2 text-sm">
+                      <div className="flex items-center">
+                        <FileIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <span className="truncate max-w-[200px]">{file.originalName}</span>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 w-6 p-0" 
+                        onClick={() => {
+                          const newFiles = [...uploadedFiles];
+                          newFiles.splice(index, 1);
+                          setUploadedFiles(newFiles);
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                        <span className="sr-only">Remove</span>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <p className="text-xs text-muted-foreground">
+              Supported formats: PDF, DOC, DOCX, TXT, RTF, JPG, PNG (Max size: 10MB)
+            </p>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
