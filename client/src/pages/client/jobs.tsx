@@ -151,12 +151,9 @@ export default function ClientJobs() {
           <div className="flex flex-col gap-2">
             <h1 className="text-3xl font-bold tracking-tight">Manage Jobs</h1>
             <p className="text-muted-foreground">
-              Post new jobs and manage your existing listings
+              Manage your existing job listings
             </p>
           </div>
-          <Button onClick={() => setShowNewJobDialog(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Post New Job
-          </Button>
         </div>
 
         <Tabs defaultValue="jobs" className="w-full">
