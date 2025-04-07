@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -15,8 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { insertJobSchema } from "@shared/schema";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { CalendarIcon, Loader2, AlertCircle, FileIcon, X, Upload, Paperclip } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -32,8 +31,7 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { FileUpload, type FileData } from "@/components/file-upload";
 
 // Extend the job schema with client validation
 const jobFormSchema = insertJobSchema.extend({
@@ -57,11 +55,7 @@ interface JobFormProps {
 }
 
 export function JobForm({ onSubmit, isPending, defaultValues }: JobFormProps) {
-  const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadedFiles, setUploadedFiles] = useState<Array<{filename: string, originalName: string, path: string}>>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<FileData[]>([]);
   
   const form = useForm<JobFormValues>({
     resolver: zodResolver(jobFormSchema),
@@ -84,53 +78,6 @@ export function JobForm({ onSubmit, isPending, defaultValues }: JobFormProps) {
     { value: "seo", label: "SEO Content" },
     { value: "general", label: "General" },
   ];
-  
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || event.target.files.length === 0) return;
-    
-    const files = Array.from(event.target.files);
-    const formData = new FormData();
-    
-    // Add each file to FormData
-    files.forEach(file => {
-      formData.append('files', file);
-    });
-    
-    setIsUploading(true);
-    setUploadError(null);
-    
-    try {
-      const response = await apiRequest("POST", "/api/upload/job-files", formData, undefined, true);
-      const data = await response.json();
-      
-      if (response.ok) {
-        setUploadedFiles(prev => [...prev, ...data]);
-        toast({
-          title: "Files uploaded successfully",
-          description: `${files.length} file${files.length > 1 ? 's' : ''} uploaded.`,
-        });
-      } else {
-        throw new Error(data.message || "Failed to upload files");
-      }
-    } catch (error: any) {
-      setUploadError(error.message || "An error occurred while uploading files");
-      toast({
-        title: "Upload failed",
-        description: error.message || "Failed to upload files. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-      // Reset the file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
-  
-  const removeFile = (index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
-  };
   
   const handleSubmitWithFiles = (values: JobFormValues) => {
     // Create file paths string
@@ -250,87 +197,13 @@ export function JobForm({ onSubmit, isPending, defaultValues }: JobFormProps) {
           )}
         />
         
-        <div className="border rounded-md p-4">
-          <h4 className="text-sm font-medium mb-3">Reference Materials (Optional)</h4>
-          
-          {uploadError && (
-            <Alert variant="destructive" className="mb-3">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{uploadError}</AlertDescription>
-            </Alert>
-          )}
-          
-          {/* File uploader */}
-          <div className="bg-muted/30 rounded-md p-3 mb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Upload className="text-muted-foreground mr-2 h-4 w-4" />
-                <span className="text-sm text-muted-foreground">Add files like examples, style guides, or resources</span>
-              </div>
-              <div>
-                <input 
-                  type="file" 
-                  ref={fileInputRef}
-                  className="hidden" 
-                  onChange={handleFileUpload}
-                  multiple
-                  accept=".pdf,.doc,.docx,.txt,.rtf,.jpg,.jpeg,.png"
-                />
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  type="button" 
-                  className="h-8"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Paperclip className="mr-1 h-4 w-4" />
-                      Upload
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-          
-          {/* Display uploaded files */}
-          {uploadedFiles.length > 0 && (
-            <div className="mb-3 space-y-2">
-              <h4 className="text-xs font-medium text-muted-foreground">Uploaded Files:</h4>
-              <div className="space-y-2">
-                {uploadedFiles.map((file, index) => (
-                  <div key={index} className="flex items-center justify-between bg-muted/20 rounded p-2 text-sm">
-                    <div className="flex items-center">
-                      <FileIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span className="truncate max-w-[200px]">{file.originalName}</span>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-6 w-6 p-0" 
-                      onClick={() => removeFile(index)}
-                    >
-                      <X className="h-4 w-4" />
-                      <span className="sr-only">Remove</span>
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          <p className="text-xs text-muted-foreground">
-            Supported formats: PDF, DOC, DOCX, TXT, RTF, JPG, PNG (Max size: 10MB)
-          </p>
-        </div>
+        {/* File Upload Component */}
+        <FileUpload
+          uploadedFiles={uploadedFiles}
+          setUploadedFiles={setUploadedFiles}
+          maxFiles={5}
+          allowedFileTypes={['.pdf', '.doc', '.docx', '.txt', '.rtf', '.jpg', '.jpeg', '.png']}
+        />
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <FormField
