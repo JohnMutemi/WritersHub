@@ -558,12 +558,24 @@ export default function ClientDashboard() {
                               }
                               
                               try {
-                                // Use fetch directly for FormData uploads
+                                // Show uploading toast
+                                toast({
+                                  title: "Uploading files...",
+                                  description: "Please wait while your files are being uploaded.",
+                                });
+                                
+                                // Use direct fetch for FormData uploads
                                 const res = await fetch('/api/upload/job-files', {
                                   method: 'POST',
                                   body: formData,
-                                  // Don't set Content-Type header, it will be set automatically with boundary
+                                  credentials: 'include',
+                                  // Don't set Content-Type header, browser will set it with boundary
                                 });
+                                
+                                if (!res.ok) {
+                                  const errorText = await res.text();
+                                  throw new Error(errorText || res.statusText || 'Upload failed');
+                                }
                                 
                                 const uploadedFiles = await res.json();
                                 
@@ -578,7 +590,7 @@ export default function ClientDashboard() {
                               } catch (error: any) {
                                 toast({
                                   title: "File upload failed",
-                                  description: error?.message || "Failed to upload files. Please try again.",
+                                  description: error instanceof Error ? error.message : "Failed to upload files. Please try again.",
                                   variant: "destructive",
                                 });
                               }
@@ -587,18 +599,28 @@ export default function ClientDashboard() {
                         </Label>
                       </div>
 
-                      {form.watch('referenceFiles') && form.watch('referenceFiles').length > 0 && (
-                        <div className="mt-2 space-y-1.5">
-                          <p className="text-xs font-medium text-muted-foreground">Uploaded files:</p>
-                          <ul className="text-xs list-disc pl-4 space-y-1">
-                            {form.watch('referenceFiles')?.map((file: any, index: number) => (
-                              <li key={index} className="text-xs">
-                                {file?.originalName || file?.filename || 'File ' + (index + 1)}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                      {(() => {
+                        // TypeScript-safe approach to get files
+                        const files = form.watch('referenceFiles');
+                        const refFiles = Array.isArray(files) ? files : [];
+                        
+                        if (refFiles.length === 0) {
+                          return null;
+                        }
+                        
+                        return (
+                          <div className="mt-2 space-y-1.5">
+                            <p className="text-xs font-medium text-muted-foreground">Uploaded files:</p>
+                            <ul className="text-xs list-disc pl-4 space-y-1">
+                              {refFiles.map((file: any, index: number) => (
+                                <li key={index} className="text-xs">
+                                  {file?.originalName || file?.filename || 'File ' + (index + 1)}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
