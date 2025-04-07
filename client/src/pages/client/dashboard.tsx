@@ -541,62 +541,82 @@ export default function ClientDashboard() {
                           <Upload className="h-3.5 w-3.5 mr-1.5" />
                           Attach files (optional)
                         </span>
-                        <Label htmlFor="file-upload" className="cursor-pointer">
-                          <Button variant="outline" size="sm" className="h-7 text-xs px-2" type="button">Upload</Button>
-                          <Input 
-                            id="file-upload" 
-                            type="file" 
-                            className="hidden" 
-                            multiple 
-                            accept=".pdf,.doc,.docx,.txt,.rtf,.jpg,.jpeg,.png"
-                            onChange={async (e) => {
-                              if (!e.target.files || e.target.files.length === 0) return;
-                              
-                              const formData = new FormData();
-                              for (let i = 0; i < e.target.files.length; i++) {
-                                formData.append('files', e.target.files[i]);
-                              }
-                              
-                              try {
+                        <div className="flex items-center gap-2">
+                          <label htmlFor="file-upload-test" className="cursor-pointer">
+                            <input
+                              id="file-upload-test"
+                              name="file-upload-test"
+                              type="file"
+                              className="sr-only"
+                              multiple
+                              accept=".pdf,.doc,.docx,.txt,.rtf,.jpg,.jpeg,.png"
+                              onChange={(e) => {
+                                if (!e.target.files || e.target.files.length === 0) return;
+                                
+                                // Create FormData
+                                const formData = new FormData();
+                                for (let i = 0; i < e.target.files.length; i++) {
+                                  formData.append('files', e.target.files[i]);
+                                }
+                                
                                 // Show uploading toast
                                 toast({
                                   title: "Uploading files...",
                                   description: "Please wait while your files are being uploaded.",
                                 });
                                 
-                                // Use direct fetch for FormData uploads
-                                const res = await fetch('/api/upload/job-files', {
-                                  method: 'POST',
-                                  body: formData,
-                                  credentials: 'include',
-                                  // Don't set Content-Type header, browser will set it with boundary
-                                });
+                                // Use XMLHttpRequest for uploads
+                                const xhr = new XMLHttpRequest();
+                                xhr.open('POST', '/api/upload/job-files', true);
+                                xhr.withCredentials = true;
                                 
-                                if (!res.ok) {
-                                  const errorText = await res.text();
-                                  throw new Error(errorText || res.statusText || 'Upload failed');
-                                }
+                                xhr.onload = function() {
+                                  if (xhr.status === 200) {
+                                    try {
+                                      const uploadedFiles = JSON.parse(xhr.responseText);
+                                      toast({
+                                        title: "Files uploaded successfully",
+                                        description: `${uploadedFiles.length} files uploaded.`,
+                                      });
+                                      
+                                      // Save file references to form data
+                                      form.setValue('referenceFiles', uploadedFiles);
+                                      
+                                      // Reset file input
+                                      e.target.value = '';
+                                    } catch (err) {
+                                      console.error("Error parsing response:", err);
+                                      toast({
+                                        title: "Upload failed",
+                                        description: "Failed to process server response.",
+                                        variant: "destructive",
+                                      });
+                                    }
+                                  } else {
+                                    toast({
+                                      title: "Upload failed",
+                                      description: `Server error: ${xhr.status}`,
+                                      variant: "destructive",
+                                    });
+                                  }
+                                };
                                 
-                                const uploadedFiles = await res.json();
+                                xhr.onerror = function() {
+                                  toast({
+                                    title: "Upload failed",
+                                    description: "Network error occurred during upload.",
+                                    variant: "destructive",
+                                  });
+                                };
                                 
-                                toast({
-                                  title: "Files uploaded successfully",
-                                  description: `${uploadedFiles.length} files uploaded.`,
-                                });
-                                
-                                // Save file references to form data
-                                form.setValue('referenceFiles', uploadedFiles);
-                                
-                              } catch (error: any) {
-                                toast({
-                                  title: "File upload failed",
-                                  description: error instanceof Error ? error.message : "Failed to upload files. Please try again.",
-                                  variant: "destructive",
-                                });
-                              }
-                            }}
-                          />
-                        </Label>
+                                xhr.send(formData);
+                              }}
+                            />
+                            <Button variant="outline" size="sm" className="h-7 text-xs px-2">
+                              Upload
+                            </Button>
+                          </label>
+                        </div>
                       </div>
 
                       {(() => {
