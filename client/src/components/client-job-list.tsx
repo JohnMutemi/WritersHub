@@ -218,7 +218,23 @@ export function ClientJobList({ jobs, bids, isLoading, refetch }: ClientJobListP
                   <line x1="7" y1="7" x2="7.01" y2="7"></line>
                 </svg>
                 <span>
-                  {job.category.charAt(0).toUpperCase() + job.category.slice(1)}
+                  {(() => {
+                    const categoryMap: Record<string, string> = {
+                      'blog': 'Blog Posts',
+                      'website': 'Website Content',
+                      'technical': 'Technical Writing',
+                      'social': 'Social Media',
+                      'marketing': 'Marketing',
+                      'creative': 'Creative Writing',
+                      'academic': 'Academic',
+                      'article': 'Article',
+                      'copywriting': 'Copywriting',
+                      'content': 'Content Writing',
+                      'seo': 'SEO Content',
+                      'general': 'General',
+                    };
+                    return categoryMap[job.category.toLowerCase()] || (job.category.charAt(0).toUpperCase() + job.category.slice(1));
+                  })()}
                 </span>
               </div>
               <div className="text-sm flex items-center">
@@ -248,28 +264,28 @@ export function ClientJobList({ jobs, bids, isLoading, refetch }: ClientJobListP
             </div>
             
             {/* File Attachments Section */}
-            {job.attachments && (
+            {job.attachments && job.attachments.length > 0 && (
               <div className="mt-3 border rounded-md p-3">
-                <h4 className="text-xs font-medium text-muted-foreground mb-2">Attachments</h4>
+                <h4 className="text-xs font-medium text-muted-foreground mb-2 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 mr-1.5">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                  </svg>
+                  Attached Files
+                </h4>
                 <div className="flex flex-wrap gap-2">
                   {job.attachments.split(',').map((file, index) => (
-                    <div key={index} className="flex items-center bg-muted/30 rounded-md px-2 py-1 text-xs">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="16" y1="13" x2="8" y2="13"></line>
-                        <line x1="16" y1="17" x2="8" y2="17"></line>
-                        <polyline points="10 9 9 9 8 9"></polyline>
+                    <a 
+                      key={index}
+                      href={`/uploads/${file.trim()}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs bg-muted/50 hover:bg-muted px-2 py-1 rounded-md flex items-center"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 mr-1.5">
+                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
                       </svg>
-                      <a 
-                        href={`/uploads/${file}`} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        {file.split('/').pop()}
-                      </a>
-                    </div>
+                      {file.trim().split('/').pop()}
+                    </a>
                   ))}
                 </div>
               </div>
