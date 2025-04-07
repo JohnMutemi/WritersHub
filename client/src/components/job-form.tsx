@@ -48,7 +48,7 @@ const jobFormSchema = insertJobSchema.extend({
   category: z.string().default("General"),
 });
 
-type JobFormValues = z.infer<typeof jobFormSchema>;
+export type JobFormValues = z.infer<typeof jobFormSchema>;
 
 interface JobFormProps {
   onSubmit: (values: JobFormValues) => void;
@@ -100,7 +100,7 @@ export function JobForm({ onSubmit, isPending, defaultValues }: JobFormProps) {
     setUploadError(null);
     
     try {
-      const response = await apiRequest("POST", "/api/upload/job-files", formData, {}, true);
+      const response = await apiRequest("POST", "/api/upload/job-files", formData, undefined, true);
       const data = await response.json();
       
       if (response.ok) {
@@ -136,19 +136,11 @@ export function JobForm({ onSubmit, isPending, defaultValues }: JobFormProps) {
     // Create file paths string
     const attachments = uploadedFiles.map(file => file.path.replace(/^\/uploads\//, '')).join(',');
     
-    // Add days until deadline
-    const now = new Date();
-    const deadlineDate = values.deadline;
-    const daysDifference = Math.ceil(
-      (deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    
     // Call the parent onSubmit with file attachments
     onSubmit({
       ...values,
-      deadline: daysDifference > 0 ? daysDifference : 1, // Ensure at least 1 day
       attachments
-    } as any);
+    });
   };
 
   return (

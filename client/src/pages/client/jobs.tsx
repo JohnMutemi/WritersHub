@@ -14,7 +14,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { toast } from "@/hooks/use-toast";
 
-type JobFormValues = z.infer<typeof insertJobSchema>;
+// Define a type for the form values with Date object for deadline
+type JobFormValues = {
+  clientId: number;
+  title: string;
+  description: string;
+  category: string;
+  budget: number;
+  deadline: Date;
+  pages?: number | null;
+  attachments?: string | null;
+  metadata?: string | null;
+};
 
 export default function ClientJobs() {
   const { user } = useAuth();
@@ -82,7 +93,7 @@ export default function ClientJobs() {
 
   // Create a new job
   const createJobMutation = useMutation({
-    mutationFn: async (job: JobFormValues) => {
+    mutationFn: async (job: Omit<JobFormValues, 'deadline'> & { deadline: number }) => {
       const res = await apiRequest("POST", "/api/jobs", job);
       return await res.json();
     },
@@ -118,10 +129,19 @@ export default function ClientJobs() {
     // The job-form component now handles file uploads directly and passes the resulting
     // filedata to us in the form of correct attachments paths
     
+    // Convert deadline from date to days
+    const now = new Date();
+    const deadlineDate = values.deadline;
+    const daysDifference = Math.ceil(
+      (deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    
+    // Use type casting to handle the conversion from Date to number for deadline
     createJobMutation.mutate({
       ...values,
+      deadline: daysDifference > 0 ? daysDifference : 1, // Ensure at least 1 day
       clientId: user.id
-    });
+    } as any);
   };
 
   return (
