@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Loader2, MoreVertical, Calendar, DollarSign, Users } from "lucide-react";
+import { Loader2, MoreVertical, Calendar, DollarSign, Users, FileText } from "lucide-react";
 import { Job, Order, BidWithDetails } from "@shared/schema";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -124,145 +124,156 @@ export function ClientJobList({ jobs, bids, isLoading, refetch }: ClientJobListP
   return (
     <div className="space-y-4">
       {jobs.map((job) => (
-        <Card key={job.id} className="overflow-hidden">
+        <Card key={job.id} className="overflow-hidden transition-all hover:shadow-md">
           <CardHeader className="pb-3 border-b">
             <div className="flex justify-between items-start">
               <div>
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-xl">{job.title}</CardTitle>
-                  {getStatusBadge(job.status)}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <CardTitle className="text-lg font-semibold">{job.title}</CardTitle>
+                  <Badge className={
+                    job.status === 'open' 
+                      ? "bg-green-100 text-green-700 hover:bg-green-100 border-green-200"
+                      : job.status === 'in_progress' 
+                      ? "bg-blue-100 text-blue-700 hover:bg-blue-100 border-blue-200"
+                      : job.status === 'completed' 
+                      ? "bg-gray-100 text-gray-700 hover:bg-gray-100 border-gray-200"
+                      : "bg-red-100 text-red-700 hover:bg-red-100 border-red-200"
+                  }>
+                    {job.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                  </Badge>
                 </div>
-                <CardDescription className="mt-1 flex items-center gap-2">
+                <CardDescription className="mt-1.5 flex flex-wrap items-center gap-2">
                   <span className="text-xs inline-flex items-center">
-                    <Calendar className="h-3 w-3 mr-1" />
-                    Posted: {format(new Date(job.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                    <Calendar className="h-3 w-3 mr-1.5" />
+                    Posted {format(new Date(job.createdAt), "MMM d, yyyy")}
                   </span>
                   <span className="text-xs inline-flex items-center">
                     <span className="h-1 w-1 rounded-full bg-muted-foreground inline-block mx-1"></span>
-                    Job ID: #{job.id}
+                    ID: #{job.id}
                   </span>
                 </CardDescription>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 px-2">
-                    <span className="mr-1">Actions</span>
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Job Actions</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {job.status === "open" && (
+              
+              <div className="flex items-center">
+                <div className="px-2 py-1 rounded-full bg-muted flex items-center text-sm">
+                  <DollarSign className="h-3.5 w-3.5 text-muted-foreground mr-1" />
+                  <span className="font-medium">${job.budget}</span>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="ml-2 h-8 w-8 p-0">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Job Actions</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {job.status === "open" && (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedJob(job);
+                          setShowBids(true);
+                        }}
+                      >
+                        View Bids ({(bids[job.id] || []).length})
+                      </DropdownMenuItem>
+                    )}
+                    {job.status === "open" && (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          if (window.confirm("Are you sure you want to cancel this job?")) {
+                            cancelJobMutation.mutate(job.id);
+                          }
+                        }}
+                      >
+                        Cancel Job
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem
                       onClick={() => {
-                        setSelectedJob(job);
-                        setShowBids(true);
+                        navigator.clipboard.writeText(job.description);
+                        toast({
+                          title: "Description copied",
+                          description: "Job description copied to clipboard",
+                        });
                       }}
                     >
-                      View Bids ({(bids[job.id] || []).length})
+                      Copy Description
                     </DropdownMenuItem>
-                  )}
-                  {job.status === "open" && (
-                    <DropdownMenuItem
-                      onClick={() => {
-                        if (window.confirm("Are you sure you want to cancel this job?")) {
-                          cancelJobMutation.mutate(job.id);
-                        }
-                      }}
-                    >
-                      Cancel Job
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem
-                    onClick={() => {
-                      navigator.clipboard.writeText(job.description);
-                      toast({
-                        title: "Description copied",
-                        description: "Job description copied to clipboard",
-                      });
-                    }}
-                  >
-                    Copy Description
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </CardHeader>
-          <CardContent className="py-4">
-            <div className="flex flex-col gap-4">
-              <div className="bg-muted/40 p-3 rounded-md">
-                <h4 className="text-sm font-medium mb-2">Description:</h4>
-                <p className="text-sm text-muted-foreground whitespace-pre-line">
-                  {job.description}
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="rounded-md border p-3">
-                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Budget</h4>
-                  <p className="text-lg font-semibold flex items-center">
-                    <DollarSign className="h-4 w-4 mr-1 text-green-500" />
-                    ${job.budget.toFixed(2)}
-                  </p>
-                </div>
-                
-                <div className="rounded-md border p-3">
-                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Deadline</h4>
-                  <p className="text-sm font-medium flex items-center">
-                    <Calendar className="h-4 w-4 mr-1 text-blue-500" />
-                    {format(new Date(job.deadline), "MMMM d, yyyy")}
-                    <span className="text-xs ml-1 text-muted-foreground">
-                      ({Math.ceil((new Date(job.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days left)
-                    </span>
-                  </p>
-                </div>
-                
-                <div className="rounded-md border p-3">
-                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Proposals</h4>
-                  <p className="text-sm font-medium flex items-center">
-                    <Users className="h-4 w-4 mr-1 text-purple-500" />
-                    {(bids[job.id] || []).length} writer bid{(bids[job.id] || []).length !== 1 ? 's' : ''}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="border rounded-md p-3">
-                <h4 className="text-xs font-medium text-muted-foreground mb-2">Attachments & References</h4>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between py-1 px-3 bg-muted/40 rounded text-sm">
-                    <span className="flex items-center text-muted-foreground">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-                        <path d="M12 2H2v10h10V2z"></path>
-                        <path d="M7 12v10h15V12H7z"></path>
-                      </svg>
-                      No attachments yet
-                    </span>
-                    <Button variant="ghost" size="sm" className="h-7 px-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                      </svg>
-                      Add Files
-                    </Button>
-                  </div>
-                </div>
-              </div>
+          <CardContent className="p-4">
+            <div className="text-sm text-muted-foreground mb-3 max-h-16 overflow-hidden">
+              {job.description.substring(0, 120)}
+              {job.description.length > 120 && '...'}
             </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="text-sm flex items-center">
+                <Calendar className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                <span>
+                  Deadline: {format(new Date(job.deadline), "MMM d, yyyy")}
+                </span>
+              </div>
+              <div className="text-sm flex items-center">
+                <Users className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                <span>
+                  {(bids[job.id] || []).length} {(bids[job.id] || []).length === 1 ? 'Proposal' : 'Proposals'}
+                </span>
+              </div>
+              {job.pages && (
+                <div className="text-sm flex items-center">
+                  <FileText className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                  <span>
+                    {job.pages} {job.pages === 1 ? 'page' : 'pages'}
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            {/* File Attachments Section */}
+            {job.attachments && (
+              <div className="mt-3 border rounded-md p-3">
+                <h4 className="text-xs font-medium text-muted-foreground mb-2">Attachments</h4>
+                <div className="flex flex-wrap gap-2">
+                  {job.attachments.split(',').map((file, index) => (
+                    <div key={index} className="flex items-center bg-muted/30 rounded-md px-2 py-1 text-xs">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                      </svg>
+                      <a 
+                        href={`/uploads/${file}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        {file.split('/').pop()}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
-          <CardFooter className="pt-2">
-            {job.status === "open" && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setSelectedJob(job);
-                  setShowBids(true);
-                }}
-                disabled={(bids[job.id] || []).length === 0}
-              >
-                View {(bids[job.id] || []).length} Bids
+          <CardFooter className="border-t p-3 flex justify-end">
+            {job.status === "open" ? (
+              <Button size="sm" onClick={() => {
+                setSelectedJob(job);
+                setShowBids(true);
+              }}>
+                View Bids
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" disabled>
+                {job.status === 'in_progress' ? 'In Progress' : 
+                  job.status === 'completed' ? 'Completed' : 'Cancelled'}
               </Button>
             )}
           </CardFooter>

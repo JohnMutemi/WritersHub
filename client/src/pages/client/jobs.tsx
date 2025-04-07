@@ -114,16 +114,13 @@ export default function ClientJobs() {
       return;
     }
 
-    // Calculate days from now until deadline (the backend expects an integer for days)
-    const deadlineDate = new Date(values.deadline);
-    const today = new Date();
-    const differenceInTime = deadlineDate.getTime() - today.getTime();
-    const differenceInDays = Math.ceil(differenceInTime / (1000 * 3600 * 24));
+    // For raw form data without files, we can process it here
+    // The job-form component now handles file uploads directly and passes the resulting
+    // filedata to us in the form of correct attachments paths
     
     createJobMutation.mutate({
       ...values,
-      clientId: user.id,
-      deadline: differenceInDays,
+      clientId: user.id
     });
   };
 
