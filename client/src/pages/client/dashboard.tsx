@@ -486,9 +486,9 @@ export default function ClientDashboard() {
                   )}
                 />
                 
-                {/* Reference style and attachments */}
-                <div className="border rounded-md p-3">
-                  <h4 className="text-sm font-medium mb-2">Reference Style & Files</h4>
+                {/* Reference Style Section */}
+                <div className="border rounded-md p-3 mb-3">
+                  <h4 className="text-sm font-medium mb-2">Reference Style</h4>
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -521,11 +521,25 @@ export default function ClientDashboard() {
                       </div>
                     </div>
                     
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Reference Links</label>
+                      <Textarea 
+                        placeholder="Paste links to reference materials (one per line)"
+                        className="mt-1 min-h-[60px] text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* File Attachments Section - Completely Separate */}
+                <div className="border rounded-md p-3">
+                  <h4 className="text-sm font-medium mb-2">File Attachments</h4>
+                  <div className="space-y-3">  
                     <div className="bg-muted/30 rounded-md p-2">
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-muted-foreground flex items-center">
                           <Upload className="h-3.5 w-3.5 mr-1.5" />
-                          Attach reference files (optional)
+                          Attach files (optional)
                         </span>
                         <Label htmlFor="file-upload" className="cursor-pointer">
                           <Button variant="outline" size="sm" className="h-7 text-xs px-2" type="button">Upload</Button>
