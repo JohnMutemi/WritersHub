@@ -27,7 +27,7 @@ const bidFormSchema = insertBidSchema.extend({
   deliveryTime: z.number().min(1, {
     message: 'Delivery time must be at least 1 day.',
   }),
-  message: z.string().min(10, {
+  coverLetter: z.string().min(10, {
     message: 'Please provide a more detailed message to the client.',
   }),
 });
@@ -45,7 +45,7 @@ export function BidModal({ job, isOpen, onClose }: BidModalProps) {
       writerId: user?.id || 0,
       amount: 0,
       deliveryTime: 1,
-      message: '',
+      coverLetter: '',
     },
   });
 
@@ -160,7 +160,7 @@ export function BidModal({ job, isOpen, onClose }: BidModalProps) {
 
               <FormField
                 control={form.control}
-                name="message"
+                name="coverLetter"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Cover Letter</FormLabel>
