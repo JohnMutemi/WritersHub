@@ -500,6 +500,214 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Charts data for admin analytics
+  app.get("/api/stats/admin/charts", hasRole(["admin"]), async (req, res, next) => {
+    try {
+      // Get time range from query parameter
+      const timeRange = req.query.timeRange as string || '6m';
+      
+      // Generate appropriate date ranges based on timeRange
+      const now = new Date();
+      let startDate = new Date();
+      
+      if (timeRange === '1m') {
+        startDate.setMonth(now.getMonth() - 1);
+      } else if (timeRange === '6m') {
+        startDate.setMonth(now.getMonth() - 6);
+      } else if (timeRange === '1y') {
+        startDate.setFullYear(now.getFullYear() - 1);
+      } else {
+        // Default to all time - use a far past date
+        startDate = new Date(2020, 0, 1);
+      }
+      
+      // Get all data needed for charts
+      const jobs = await storage.getJobs();
+      const orders = await storage.getAllOrders();
+      
+      // Filter by date range if applicable
+      const filteredJobs = jobs.filter(job => new Date(job.createdAt) >= startDate);
+      const filteredOrders = orders.filter(order => new Date(order.createdAt) >= startDate);
+      
+      // Group data by month for jobs, orders and revenue
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const jobData = [];
+      const orderData = [];
+      const revenueData = [];
+      
+      // Generate a map of months to include in response
+      const monthsMap = new Map();
+      
+      if (timeRange === '1m') {
+        // For 1 month, we show days instead
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        for (let i = 1; i <= daysInMonth; i++) {
+          monthsMap.set(i.toString(), {
+            jobs: 0,
+            orders: 0,
+            revenue: 0
+          });
+        }
+        
+        // Process jobs, orders by day
+        filteredJobs.forEach(job => {
+          const date = new Date(job.createdAt);
+          const day = date.getDate().toString();
+          if (monthsMap.has(day)) {
+            const data = monthsMap.get(day);
+            data.jobs++;
+            monthsMap.set(day, data);
+          }
+        });
+        
+        filteredOrders.forEach(order => {
+          const date = new Date(order.createdAt);
+          const day = date.getDate().toString();
+          if (monthsMap.has(day)) {
+            const data = monthsMap.get(day);
+            data.orders++;
+            data.revenue += order.amount;
+            monthsMap.set(day, data);
+          }
+        });
+        
+        // Convert map to arrays
+        monthsMap.forEach((value, key) => {
+          jobData.push({ month: key, jobs: value.jobs });
+          orderData.push({ month: key, orders: value.orders });
+          revenueData.push({ month: key, revenue: value.revenue });
+        });
+      } else {
+        // For other time ranges, group by month
+        const startMonth = startDate.getMonth();
+        const startYear = startDate.getFullYear();
+        const endMonth = now.getMonth();
+        const endYear = now.getFullYear();
+        
+        // Create array of all months in range
+        let currentMonth = startMonth;
+        let currentYear = startYear;
+        
+        while (currentYear < endYear || (currentYear === endYear && currentMonth <= endMonth)) {
+          const monthKey = `${monthNames[currentMonth]} ${currentYear}`;
+          monthsMap.set(monthKey, {
+            jobs: 0,
+            orders: 0,
+            revenue: 0
+          });
+          
+          currentMonth++;
+          if (currentMonth > 11) {
+            currentMonth = 0;
+            currentYear++;
+          }
+        }
+        
+        // Process jobs by month
+        filteredJobs.forEach(job => {
+          const date = new Date(job.createdAt);
+          const monthKey = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+          if (monthsMap.has(monthKey)) {
+            const data = monthsMap.get(monthKey);
+            data.jobs++;
+            monthsMap.set(monthKey, data);
+          }
+        });
+        
+        // Process orders by month
+        filteredOrders.forEach(order => {
+          const date = new Date(order.createdAt);
+          const monthKey = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+          if (monthsMap.has(monthKey)) {
+            const data = monthsMap.get(monthKey);
+            data.orders++;
+            data.revenue += order.amount;
+            monthsMap.set(monthKey, data);
+          }
+        });
+        
+        // Convert map to arrays, preserving chronological order
+        const monthKeys = Array.from(monthsMap.keys()).sort((a, b) => {
+          const [aMonth, aYear] = a.split(' ');
+          const [bMonth, bYear] = b.split(' ');
+          
+          if (aYear !== bYear) {
+            return parseInt(aYear) - parseInt(bYear);
+          }
+          
+          return monthNames.indexOf(aMonth) - monthNames.indexOf(bMonth);
+        });
+        
+        monthKeys.forEach(key => {
+          const value = monthsMap.get(key);
+          const monthName = key.split(' ')[0]; // Just use month name for display
+          jobData.push({ month: monthName, jobs: value.jobs });
+          orderData.push({ month: monthName, orders: value.orders });
+          revenueData.push({ month: monthName, revenue: value.revenue });
+        });
+      }
+      
+      // Generate status distribution data
+      const statusCounts = {
+        'open': 0,
+        'in_progress': 0,
+        'completed': 0,
+        'cancelled': 0
+      };
+      
+      jobs.forEach(job => {
+        if (statusCounts[job.status] !== undefined) {
+          statusCounts[job.status]++;
+        }
+      });
+      
+      const statusData = [
+        { name: 'Open', value: statusCounts.open },
+        { name: 'In Progress', value: statusCounts.in_progress },
+        { name: 'Completed', value: statusCounts.completed },
+        { name: 'Cancelled', value: statusCounts.cancelled }
+      ];
+      
+      // Generate user composition data
+      const users = await Promise.all(
+        (await storage.getJobs()).map(job => storage.getUser(job.clientId))
+      );
+      
+      // Remove duplicates and count by role
+      const uniqueUsers = users.filter((user, index, self) => 
+        user && index === self.findIndex(u => u && u.id === user.id)
+      );
+      
+      const roleCounts = {
+        'writer': 0,
+        'client': 0,
+        'admin': 0
+      };
+      
+      uniqueUsers.forEach(user => {
+        if (user && roleCounts[user.role] !== undefined) {
+          roleCounts[user.role]++;
+        }
+      });
+      
+      const userData = [
+        { name: 'Writers', value: roleCounts.writer },
+        { name: 'Clients', value: roleCounts.client },
+        { name: 'Admins', value: roleCounts.admin }
+      ];
+      
+      res.json({
+        jobData,
+        orderData,
+        revenueData,
+        statusData,
+        userData
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+  
   // Admin API routes
   app.get("/api/admin/users", hasRole(["admin"]), async (req, res, next) => {
     try {

@@ -7,7 +7,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { Order } from "@shared/schema";
 import { OrderItem } from "@/components/order-item";
-import { Loader2 } from "lucide-react";
+import { Loader2, Paperclip } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
@@ -131,12 +131,22 @@ export default function WriterOrders() {
           </DialogHeader>
           <div className="py-4">
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Upload Files</label>
-              <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Drag and drop your files here, or click to browse
-                </p>
-                <Button variant="outline" className="mt-2">Select Files</Button>
+              <label className="block text-sm font-medium mb-2">Add Attachment Links</label>
+              <div className="border rounded-md p-3">
+                <div className="flex flex-col space-y-3">
+                  <input
+                    type="text"
+                    placeholder="https://example.com/completed-assignment.pdf"
+                    className="w-full p-2 text-sm border rounded-md"
+                  />
+                  <Button variant="secondary" size="sm">
+                    <Paperclip className="mr-1 h-4 w-4" />
+                    Add Link
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Add links to your completed work (Google Drive, Dropbox, etc.)
+                  </p>
+                </div>
               </div>
             </div>
             <div className="mb-4">

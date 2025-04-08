@@ -16,45 +16,31 @@ import { AdminStats } from '@shared/schema';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
-const mockJobData = [
-  { month: 'Jan', jobs: 5 },
-  { month: 'Feb', jobs: 8 },
-  { month: 'Mar', jobs: 12 },
-  { month: 'Apr', jobs: 15 },
-  { month: 'May', jobs: 18 },
-  { month: 'Jun', jobs: 24 },
-];
+// We'll use real data from API, but define default chart data formats
+interface JobData {
+  month: string;
+  jobs: number;
+}
 
-const mockOrderData = [
-  { month: 'Jan', orders: 3 },
-  { month: 'Feb', orders: 5 },
-  { month: 'Mar', orders: 10 },
-  { month: 'Apr', orders: 12 },
-  { month: 'May', orders: 15 },
-  { month: 'Jun', orders: 18 },
-];
+interface OrderData {
+  month: string;
+  orders: number;
+}
 
-const mockRevenueData = [
-  { month: 'Jan', revenue: 150 },
-  { month: 'Feb', revenue: 220 },
-  { month: 'Mar', revenue: 480 },
-  { month: 'Apr', revenue: 580 },
-  { month: 'May', revenue: 780 },
-  { month: 'Jun', revenue: 920 },
-];
+interface RevenueData {
+  month: string;
+  revenue: number;
+}
 
-const mockStatusData = [
-  { name: 'Open', value: 15 },
-  { name: 'In Progress', value: 20 },
-  { name: 'Completed', value: 45 },
-  { name: 'Cancelled', value: 5 },
-];
+interface StatusData {
+  name: string;
+  value: number;
+}
 
-const mockUserData = [
-  { name: 'Writers', value: 40 },
-  { name: 'Clients', value: 55 },
-  { name: 'Admins', value: 5 },
-];
+interface UserData {
+  name: string;
+  value: number;
+}
 
 export default function AdminAnalyticsPage() {
   const [timeRange, setTimeRange] = useState('6m'); // 1m, 6m, 1y, all
@@ -64,6 +50,70 @@ export default function AdminAnalyticsPage() {
     queryKey: ['/api/stats/admin'],
     retry: false
   });
+  
+  // Fetch chart data
+  const { data: chartData, isLoading: isChartLoading } = useQuery<{
+    jobData: JobData[];
+    orderData: OrderData[];
+    revenueData: RevenueData[];
+    statusData: StatusData[];
+    userData: UserData[];
+  }>({
+    queryKey: ['/api/stats/admin/charts', timeRange],
+    queryFn: async () => {
+      const res = await fetch(`/api/stats/admin/charts?timeRange=${timeRange}`);
+      if (!res.ok) throw new Error('Failed to fetch chart data');
+      return res.json();
+    }
+  });
+  
+  // Default data in case API isn't ready
+  const defaultJobData: JobData[] = [
+    { month: 'Jan', jobs: 0 },
+    { month: 'Feb', jobs: 0 },
+    { month: 'Mar', jobs: 0 },
+    { month: 'Apr', jobs: 0 },
+    { month: 'May', jobs: 0 },
+    { month: 'Jun', jobs: 0 },
+  ];
+  
+  const defaultOrderData: OrderData[] = [
+    { month: 'Jan', orders: 0 },
+    { month: 'Feb', orders: 0 },
+    { month: 'Mar', orders: 0 },
+    { month: 'Apr', orders: 0 },
+    { month: 'May', orders: 0 },
+    { month: 'Jun', orders: 0 },
+  ];
+  
+  const defaultRevenueData: RevenueData[] = [
+    { month: 'Jan', revenue: 0 },
+    { month: 'Feb', revenue: 0 },
+    { month: 'Mar', revenue: 0 },
+    { month: 'Apr', revenue: 0 },
+    { month: 'May', revenue: 0 },
+    { month: 'Jun', revenue: 0 },
+  ];
+  
+  const defaultStatusData: StatusData[] = [
+    { name: 'Open', value: 0 },
+    { name: 'In Progress', value: 0 },
+    { name: 'Completed', value: 0 },
+    { name: 'Cancelled', value: 0 },
+  ];
+  
+  const defaultUserData: UserData[] = [
+    { name: 'Writers', value: 0 },
+    { name: 'Clients', value: 0 },
+    { name: 'Admins', value: 0 },
+  ];
+  
+  // Use real data or default data if loading
+  const jobData = chartData?.jobData || defaultJobData;
+  const orderData = chartData?.orderData || defaultOrderData;
+  const revenueData = chartData?.revenueData || defaultRevenueData;
+  const statusData = chartData?.statusData || defaultStatusData;
+  const userData = chartData?.userData || defaultUserData;
 
   return (
     <DashboardLayout>
@@ -167,7 +217,7 @@ export default function AdminAnalyticsPage() {
             <CardContent className="h-80 pl-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={mockJobData}
+                  data={jobData}
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -189,7 +239,7 @@ export default function AdminAnalyticsPage() {
             <CardContent className="h-80 pl-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={mockOrderData}
+                  data={orderData}
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -213,7 +263,7 @@ export default function AdminAnalyticsPage() {
             <CardContent className="h-80 pl-0">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
-                  data={mockRevenueData}
+                  data={revenueData}
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -243,7 +293,7 @@ export default function AdminAnalyticsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={mockStatusData}
+                      data={statusData}
                       cx="50%"
                       cy="50%"
                       outerRadius={60}
@@ -252,7 +302,7 @@ export default function AdminAnalyticsPage() {
                       nameKey="name"
                       label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
                     >
-                      {mockStatusData.map((entry, index) => (
+                      {statusData.map((entry: StatusData, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -272,7 +322,7 @@ export default function AdminAnalyticsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={mockUserData}
+                      data={userData}
                       cx="50%"
                       cy="50%"
                       outerRadius={60}
@@ -281,7 +331,7 @@ export default function AdminAnalyticsPage() {
                       nameKey="name"
                       label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
                     >
-                      {mockUserData.map((entry, index) => (
+                      {userData.map((entry: UserData, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>

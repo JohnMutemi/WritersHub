@@ -29,65 +29,43 @@ export function FileUpload({
   className = ''
 }: FileUploadProps) {
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [attachmentUrl, setAttachmentUrl] = useState<string>('');
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || event.target.files.length === 0) return;
-    
-    // Check if adding more files would exceed the limit
-    if (uploadedFiles.length + event.target.files.length > maxFiles) {
-      setUploadError(`You can only upload a maximum of ${maxFiles} files.`);
+  const addAttachment = () => {
+    if (!attachmentUrl.trim()) {
       toast({
-        title: "Too many files",
-        description: `You can only upload a maximum of ${maxFiles} files.`,
+        title: "Empty URL",
+        description: "Please enter a valid URL to add an attachment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if adding more files would exceed the limit
+    if (uploadedFiles.length >= maxFiles) {
+      setUploadError(`You can only add a maximum of ${maxFiles} attachments.`);
+      toast({
+        title: "Too many attachments",
+        description: `You can only add a maximum of ${maxFiles} attachments.`,
         variant: "destructive",
       });
       return;
     }
     
-    const files = Array.from(event.target.files);
-    const formData = new FormData();
+    // Create a file data object from the URL
+    const newFile: FileData = {
+      filename: attachmentUrl.split('/').pop() || 'attachment',
+      originalName: attachmentUrl.split('/').pop() || 'attachment',
+      path: attachmentUrl,
+    };
     
-    // Add each file to FormData
-    files.forEach(file => {
-      formData.append('files', file);
+    setUploadedFiles([...uploadedFiles, newFile]);
+    setAttachmentUrl(''); // Clear the input field
+    toast({
+      title: "Attachment added",
+      description: "Your attachment link has been added successfully.",
     });
-    
-    setIsUploading(true);
-    setUploadError(null);
-    
-    try {
-      const response = await apiRequest("POST", "/api/upload/job-files", formData, undefined, true);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to upload files");
-      }
-      
-      const data = await response.json();
-      
-      setUploadedFiles([...uploadedFiles, ...data]);
-      toast({
-        title: "Files uploaded successfully",
-        description: `${files.length} file${files.length > 1 ? 's' : ''} uploaded.`,
-      });
-    } catch (error: any) {
-      console.error("File upload error:", error);
-      setUploadError(error.message || "An error occurred while uploading files");
-      toast({
-        title: "Upload failed",
-        description: error.message || "Failed to upload files. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-      // Reset the file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
   };
   
   const removeFile = (index: number) => {
@@ -95,9 +73,6 @@ export function FileUpload({
     newFiles.splice(index, 1);
     setUploadedFiles(newFiles);
   };
-
-  // Generate a string of accepted file extensions for the input
-  const acceptedFileTypes = allowedFileTypes.join(',');
 
   return (
     <div className={`border rounded-md p-4 ${className}`}>
@@ -111,60 +86,55 @@ export function FileUpload({
         </Alert>
       )}
       
-      {/* File uploader */}
+      {/* Attachment URL input */}
       <div className="bg-muted/30 rounded-md p-3 mb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col space-y-2">
           <div className="flex items-center">
-            <Upload className="text-muted-foreground mr-2 h-4 w-4" />
+            <Paperclip className="text-muted-foreground mr-2 h-4 w-4" />
             <span className="text-sm text-muted-foreground">
-              Add files like examples, style guides, or resources
+              Add attachment links to examples, style guides, or resources
             </span>
           </div>
-          <div>
-            <input 
-              type="file" 
-              ref={fileInputRef}
-              className="hidden" 
-              onChange={handleFileUpload}
-              multiple
-              accept={acceptedFileTypes}
+          <div className="flex space-x-2">
+            <input
+              type="text"
+              value={attachmentUrl}
+              onChange={(e) => setAttachmentUrl(e.target.value)}
+              placeholder="https://example.com/document.pdf"
+              className="flex-1 p-2 text-sm border rounded-md"
             />
             <Button 
-              variant="ghost" 
+              variant="secondary" 
               size="sm" 
-              type="button" 
-              className="h-8"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading || uploadedFiles.length >= maxFiles}
+              type="button"
+              onClick={addAttachment}
+              disabled={uploadedFiles.length >= maxFiles}
             >
-              {isUploading ? (
-                <>
-                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Paperclip className="mr-1 h-4 w-4" />
-                  {uploadedFiles.length >= maxFiles ? 'Max files reached' : 'Upload'}
-                </>
-              )}
+              <Paperclip className="mr-1 h-4 w-4" />
+              Add Link
             </Button>
           </div>
         </div>
       </div>
       
-      {/* Display uploaded files */}
+      {/* Display attached links */}
       {uploadedFiles.length > 0 && (
         <div className="mb-3 space-y-2">
-          <h4 className="text-xs font-medium text-muted-foreground">Uploaded Files:</h4>
+          <h4 className="text-xs font-medium text-muted-foreground">Attachments:</h4>
           <div className="space-y-2">
             {uploadedFiles.map((file, index) => (
               <div key={index} className="flex items-center justify-between bg-muted/20 rounded p-2 text-sm">
                 <div className="flex items-center flex-1 min-w-0">
                   <FileIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <span className="truncate max-w-[200px]" title={file.originalName}>
-                    {file.originalName}
-                  </span>
+                  <a 
+                    href={file.path} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="truncate max-w-[200px] text-blue-600 hover:underline"
+                    title={file.path}
+                  >
+                    {file.originalName || file.path}
+                  </a>
                 </div>
                 <Button 
                   variant="ghost" 
@@ -182,7 +152,7 @@ export function FileUpload({
       )}
       
       <p className="text-xs text-muted-foreground">
-        Supported formats: PDF, DOC, DOCX, TXT, RTF, JPG, PNG (Max size: 10MB)
+        Add links to documents you've uploaded elsewhere (Google Drive, Dropbox, etc.)
       </p>
     </div>
   );
