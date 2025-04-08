@@ -22,8 +22,12 @@ export default function WriterDashboard() {
 
   // Fetch writer stats
   const { data: stats, isLoading } = useQuery<WriterStats>({
-    queryKey: ['/api/stats/writer'],
-    retry: false
+    queryKey: ['/api/writer/stats'],
+    queryFn: async () => {
+      const res = await fetch("/api/writer/stats");
+      if (!res.ok) throw new Error("Failed to fetch writer stats");
+      return res.json();
+    },
   });
 
   return (

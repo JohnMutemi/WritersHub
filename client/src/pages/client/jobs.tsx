@@ -66,29 +66,10 @@ export default function ClientJobs() {
   } = useQuery<Record<number, BidWithDetails[]>>({
     queryKey: ["/api/client/bids"],
     queryFn: async () => {
-      // If no jobs, return empty object
-      if (jobs.length === 0) return {};
-
-      // Create an object to store bids for each job
-      const bidsByJob: Record<number, BidWithDetails[]> = {};
-      
-      // Fetch bids for each job
-      const bidsPromises = jobs.map(async (job) => {
-        try {
-          const res = await fetch(`/api/jobs/${job.id}/bids`);
-          if (!res.ok) throw new Error(`Failed to fetch bids for job ${job.id}`);
-          const bids = await res.json();
-          bidsByJob[job.id] = bids;
-        } catch (error) {
-          console.error(`Error fetching bids for job ${job.id}:`, error);
-          bidsByJob[job.id] = [];
-        }
-      });
-      
-      await Promise.all(bidsPromises);
-      return bidsByJob;
+      const res = await fetch("/api/client/bids");
+      if (!res.ok) throw new Error("Failed to fetch bids");
+      return res.json();
     },
-    enabled: jobs.length > 0,
   });
 
   // Create a new job
@@ -154,6 +135,10 @@ export default function ClientJobs() {
               Manage your existing job listings
             </p>
           </div>
+          <Button onClick={() => setShowNewJobDialog(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Post New Job
+          </Button>
         </div>
 
         <Tabs defaultValue="jobs" className="w-full">

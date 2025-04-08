@@ -17,69 +17,15 @@ export default function WriterOrders() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [deliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
 
-  // Mock data for writer's orders
-  const mockOrders: Order[] = [
-    {
-      id: 1,
-      jobId: 1,
-      bidId: 1,
-      clientId: 3,
-      writerId: user?.id || 1,
-      status: "in_progress",
-      amount: 300,
-      deadline: new Date("2025-04-10"),
-      completedAt: null,
-      createdAt: new Date("2025-03-25")
-    },
-    {
-      id: 2,
-      jobId: 3,
-      bidId: 3,
-      clientId: 4,
-      writerId: user?.id || 1,
-      status: "revision",
-      amount: 250,
-      deadline: new Date("2025-04-05"),
-      completedAt: null,
-      createdAt: new Date("2025-03-20")
-    },
-    {
-      id: 3,
-      jobId: 5,
-      bidId: 5,
-      clientId: 1,
-      writerId: user?.id || 1,
-      status: "completed",
-      amount: 180,
-      deadline: new Date("2025-03-28"),
-      completedAt: new Date("2025-03-27"),
-      createdAt: new Date("2025-03-15")
-    },
-    {
-      id: 4,
-      jobId: 2,
-      bidId: 2,
-      clientId: 2,
-      writerId: user?.id || 1,
-      status: "completed",
-      amount: 200,
-      deadline: new Date("2025-03-20"),
-      completedAt: new Date("2025-03-18"),
-      createdAt: new Date("2025-03-10")
-    }
-  ];
+  // No more mock data, we'll use the API
 
   // Fetch writer's orders
-  const { data: myOrders = mockOrders, isLoading: ordersLoading } = useQuery({
+  const { data: myOrders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['/api/writer/orders'],
     queryFn: async () => {
-      try {
-        const response = await apiRequest('GET', '/api/writer/orders');
-        return await response.json();
-      } catch (error) {
-        // Fallback to mock data if API fails
-        return mockOrders;
-      }
+      const res = await fetch('/api/writer/orders');
+      if (!res.ok) throw new Error('Failed to fetch orders');
+      return res.json();
     },
     enabled: !!user
   });

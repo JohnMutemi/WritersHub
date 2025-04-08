@@ -20,8 +20,12 @@ export default function WriterJobs() {
 
   // Fetch jobs
   const { data: jobs, isLoading } = useQuery<Job[]>({
-    queryKey: ['/api/jobs'],
-    retry: false
+    queryKey: ['/api/writer/jobs'],
+    queryFn: async () => {
+      const res = await fetch("/api/writer/jobs");
+      if (!res.ok) throw new Error("Failed to fetch available jobs");
+      return res.json();
+    },
   });
 
   // Filter and sort jobs

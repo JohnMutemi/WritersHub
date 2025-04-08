@@ -63,7 +63,7 @@ const hasRole = (roles: string[]) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
     
-    if (!roles.includes(req.user.role)) {
+    if (!roles.includes(req.user!.role)) {
       return res.status(403).json({ message: "Forbidden" });
     }
     
@@ -149,7 +149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let formattedAttachments = null;
       if (referenceFiles && referenceFiles.length > 0) {
         // Create a comma-separated list of file paths from the uploaded files
-        formattedAttachments = referenceFiles.map(file => file.path).join(',');
+        formattedAttachments = referenceFiles.map((file: { path: string }) => file.path).join(',');
       }
       
       const parsedData = insertJobSchema.parse({
@@ -178,11 +178,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/bids", isAuthenticated, async (req, res, next) => {
     try {
       let bids;
-      if (req.user.role === 'writer') {
-        bids = await storage.getBidsByWriter(req.user.id);
-      } else if (req.user.role === 'client') {
-        bids = await storage.getBidsByClient(req.user.id);
-      } else if (req.user.role === 'admin') {
+      if (req.user!.role === 'writer') {
+        bids = await storage.getBidsByWriter(req.user!.id);
+      } else if (req.user!.role === 'client') {
+        bids = await storage.getBidsByClient(req.user!.id);
+      } else if (req.user!.role === 'admin') {
         bids = await storage.getAllBids();
       } else {
         return res.status(403).json({ message: "Forbidden" });
@@ -197,13 +197,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/bids", hasRole(["writer"]), async (req, res, next) => {
     try {
       // Check if writer is approved
-      if (req.user.approvalStatus !== 'approved') {
+      if (req.user!.approvalStatus !== 'approved') {
         return res.status(403).json({ message: "Your account needs approval before bidding" });
       }
       
       const parsedData = insertBidSchema.parse({
         ...req.body,
-        writerId: req.user.id
+        writerId: req.user!.id
       });
       
       // Check if job exists and is open
@@ -234,7 +234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // If user is a client, check if job belongs to them
-      if (req.user.role === 'client' && job.clientId !== req.user.id) {
+      if (req.user!.role === 'client' && job.clientId !== req.user!.id) {
         return res.status(403).json({ message: "Forbidden" });
       }
       
@@ -280,7 +280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if job belongs to client
       const job = await storage.getJob(bid.jobId);
-      if (!job || job.clientId !== req.user.id) {
+      if (!job || job.clientId !== req.user!.id) {
         return res.status(403).json({ message: "Forbidden" });
       }
       
@@ -300,7 +300,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const order = await storage.createOrder({
         jobId: job.id,
         bidId: bid.id,
-        clientId: req.user.id,
+        clientId: req.user!.id,
         writerId: bid.writerId,
         amount: bid.amount,
         deadline: deadline
@@ -322,11 +322,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/orders", isAuthenticated, async (req, res, next) => {
     try {
       let orders;
-      if (req.user.role === 'writer') {
-        orders = await storage.getOrdersByWriter(req.user.id);
-      } else if (req.user.role === 'client') {
-        orders = await storage.getOrdersByClient(req.user.id);
-      } else if (req.user.role === 'admin') {
+      if (req.user!.role === 'writer') {
+        orders = await storage.getOrdersByWriter(req.user!.id);
+      } else if (req.user!.role === 'client') {
+        orders = await storage.getOrdersByClient(req.user!.id);
+      } else if (req.user!.role === 'admin') {
         orders = await storage.getAllOrders();
       } else {
         return res.status(403).json({ message: "Forbidden" });
@@ -349,7 +349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if order belongs to writer
-      if (order.writerId !== req.user.id) {
+      if (order.writerId !== req.user!.id) {
         return res.status(403).json({ message: "Forbidden" });
       }
       
@@ -385,13 +385,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { amount, paymentMethod, paymentDetails } = req.body;
       
       // Check if user has enough balance
-      if (req.user.balance < amount) {
+      if (req.user!.balance < amount) {
         return res.status(400).json({ message: "Insufficient balance" });
       }
       
       // Validate withdrawal schema
       const parsedData = insertTransactionSchema.parse({
-        userId: req.user.id,
+        userId: req.user!.id,
         amount: -amount, // Negative for withdrawal
         type: 'withdrawal',
         status: 'pending',
@@ -404,7 +404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transaction = await storage.createTransaction(parsedData);
       
       // Update user balance
-      await storage.updateUserBalance(req.user.id, -amount);
+      await storage.updateUserBalance(req.user!.id, -amount);
       
       res.status(201).json(transaction);
     } catch (error) {
@@ -420,7 +420,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const parsedData = insertWriterQuizSchema.parse({
         ...req.body,
-        writerId: req.user.id
+        writerId: req.user!.id
       });
       
       const quiz = await storage.submitWriterQuiz(parsedData);
@@ -475,7 +475,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Statistics routes
   app.get("/api/stats/writer", hasRole(["writer"]), async (req, res, next) => {
     try {
-      const stats = await storage.getWriterStats(req.user.id);
+      const stats = await storage.getWriterStats(req.user!.id);
       res.json(stats);
     } catch (error) {
       next(error);
@@ -484,7 +484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/stats/client", hasRole(["client"]), async (req, res, next) => {
     try {
-      const stats = await storage.getClientStats(req.user.id);
+      const stats = await storage.getClientStats(req.user!.id);
       res.json(stats);
     } catch (error) {
       next(error);
@@ -572,6 +572,157 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateWriterApprovalStatus(userId, 'rejected');
       
       res.sendStatus(200);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Client-specific routes
+  
+  // Get jobs posted by the authenticated client
+  app.get("/api/client/jobs", hasRole(["client"]), async (req, res, next) => {
+    try {
+      // Get all jobs and filter by clientId
+      const allJobs = await storage.getJobs();
+      const clientJobs = allJobs.filter(job => job.clientId === req.user!.id);
+      res.json(clientJobs);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Get orders for the authenticated client
+  app.get("/api/client/orders", hasRole(["client"]), async (req, res, next) => {
+    try {
+      const orders = await storage.getOrdersByClient(req.user!.id);
+      
+      // Enhance orders with job details
+      const ordersWithDetails = await Promise.all(orders.map(async order => {
+        const job = await storage.getJob(order.jobId);
+        const writer = await storage.getUser(order.writerId);
+        
+        return {
+          ...order,
+          jobTitle: job?.title || "Unknown Job",
+          writerUsername: writer?.username || "Unknown Writer"
+        };
+      }));
+      
+      res.json(ordersWithDetails);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Get bids for all jobs of the authenticated client
+  app.get("/api/client/bids", hasRole(["client"]), async (req, res, next) => {
+    try {
+      const bids = await storage.getBidsByClient(req.user!.id);
+      
+      // Group bids by job ID
+      const bidsByJob: Record<number, any[]> = {};
+      for (const bid of bids) {
+        if (!bidsByJob[bid.jobId]) {
+          bidsByJob[bid.jobId] = [];
+        }
+        
+        // Enhance bid with writer details
+        const writer = await storage.getUser(bid.writerId);
+        const writerStats = await storage.getWriterStats(bid.writerId);
+        
+        bidsByJob[bid.jobId].push({
+          ...bid,
+          writerUsername: writer?.username,
+          writerName: writer?.fullName,
+          proposal: bid.coverLetter, // For compatibility with frontend
+          stats: {
+            completedOrders: writerStats.completedOrders,
+            activeOrders: writerStats.activeOrders,
+            pendingBids: writerStats.pendingBids
+          }
+        });
+      }
+      
+      res.json(bidsByJob);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Get stats for the authenticated client
+  app.get("/api/client/stats", hasRole(["client"]), async (req, res, next) => {
+    try {
+      const stats = await storage.getClientStats(req.user!.id);
+      res.json(stats);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Writer-specific routes
+  
+  // Get available jobs for writers
+  app.get("/api/writer/jobs", hasRole(["writer"]), async (req, res, next) => {
+    try {
+      const allJobs = await storage.getJobs();
+      // Return only open jobs
+      const availableJobs = allJobs.filter(job => job.status === 'open');
+      res.json(availableJobs);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Get bids placed by the authenticated writer
+  app.get("/api/writer/bids", hasRole(["writer"]), async (req, res, next) => {
+    try {
+      const bids = await storage.getBidsByWriter(req.user!.id);
+      
+      // Enhance bids with job details
+      const bidsWithJobDetails = await Promise.all(bids.map(async bid => {
+        const job = await storage.getJob(bid.jobId);
+        return {
+          ...bid,
+          jobTitle: job?.title || "Unknown Job",
+          description: job?.description || "",
+          deadline: job?.deadline || null
+        };
+      }));
+      
+      res.json(bidsWithJobDetails);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Get orders assigned to the authenticated writer
+  app.get("/api/writer/orders", hasRole(["writer"]), async (req, res, next) => {
+    try {
+      const orders = await storage.getOrdersByWriter(req.user!.id);
+      
+      // Enhance orders with job details
+      const ordersWithDetails = await Promise.all(orders.map(async order => {
+        const job = await storage.getJob(order.jobId);
+        const client = await storage.getUser(order.clientId);
+        
+        return {
+          ...order,
+          jobTitle: job?.title || "Unknown Job",
+          clientUsername: client?.username || "Unknown Client"
+        };
+      }));
+      
+      res.json(ordersWithDetails);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Get stats for the authenticated writer
+  app.get("/api/writer/stats", hasRole(["writer"]), async (req, res, next) => {
+    try {
+      const stats = await storage.getWriterStats(req.user!.id);
+      res.json(stats);
     } catch (error) {
       next(error);
     }

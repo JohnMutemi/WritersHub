@@ -63,7 +63,7 @@ export default function ClientPostJob() {
         title: "Job posted successfully",
         description: "Writers can now bid on your job",
       });
-      navigate("/client/manage-orders");
+      navigate("/client/jobs");
     },
     onError: (error: Error) => {
       toast({
@@ -74,17 +74,35 @@ export default function ClientPostJob() {
     },
   });
 
-  // Update the referenceFiles value when files are uploaded
-  React.useEffect(() => {
-    form.setValue('referenceFiles', uploadedFiles);
-  }, [uploadedFiles, form]);
-
+  // No automatic form update when files are uploaded
+  // Only update the form value when submitting
+  
   const onSubmit = (values: JobFormValues) => {
     // Add uploaded files to the job data
     const jobData = {
       ...values,
       referenceFiles: uploadedFiles
     };
+    
+    // Validate that we have a title and description before submitting
+    if (!values.title.trim()) {
+      toast({
+        title: "Missing title",
+        description: "Please provide a job title",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!values.description.trim()) {
+      toast({
+        title: "Missing description",
+        description: "Please provide a job description",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     createJobMutation.mutate(jobData);
   };
 
@@ -360,7 +378,7 @@ export default function ClientPostJob() {
               </CardContent>
               <CardFooter>
                 <Button variant="outline" className="w-full" asChild>
-                  <Link href="/client/manage-orders">View My Current Jobs</Link>
+                  <Link href="/client/jobs">View My Current Jobs</Link>
                 </Button>
               </CardFooter>
             </Card>
