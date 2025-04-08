@@ -142,16 +142,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/jobs", hasRole(["client"]), async (req, res, next) => {
     try {
-      // Get attachments and other data
-      const { attachments, ...jobData } = req.body;
+      // Get attachments, reference files, and other data
+      const { attachments, referenceFiles, ...jobData } = req.body;
+      
+      // Format file attachments if present
+      let formattedAttachments = null;
+      if (referenceFiles && referenceFiles.length > 0) {
+        // Create a comma-separated list of file paths from the uploaded files
+        formattedAttachments = referenceFiles.map(file => file.path).join(',');
+      }
       
       const parsedData = insertJobSchema.parse({
         ...jobData,
         clientId: req.user!.id,
         // Store the attachments paths
-        attachments: attachments || null,
-        // Keep compatibility with any metadata
-        metadata: req.body.metadata || null
+        attachments: formattedAttachments || attachments || null,
+        // Store reference file details in metadata for future reference
+        metadata: JSON.stringify({
+          ...JSON.parse(req.body.metadata || '{}'),
+          referenceFiles: referenceFiles || []
+        })
       });
       
       const job = await storage.createJob(parsedData);

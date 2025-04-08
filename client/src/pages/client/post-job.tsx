@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { DashboardLayout } from "@/components/ui/dashboard-layout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { InfoIcon, Upload } from "lucide-react";
+import { FileUpload, FileData } from "@/components/file-upload";
 
 // Form schema for job creation
 const jobSchema = z.object({
@@ -25,6 +26,7 @@ const jobSchema = z.object({
   budget: z.number().min(10, "Budget must be at least $10"),
   deadline: z.number().int().min(1, "Deadline must be at least 1 day"),
   pages: z.number().int().min(1, "Number of pages must be at least 1"),
+  referenceFiles: z.array(z.any()).optional(),
 });
 
 type JobFormValues = z.infer<typeof jobSchema>;
@@ -32,6 +34,7 @@ type JobFormValues = z.infer<typeof jobSchema>;
 export default function ClientPostJob() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const [uploadedFiles, setUploadedFiles] = useState<FileData[]>([]);
 
   // Job form
   const form = useForm<JobFormValues>({
@@ -43,6 +46,7 @@ export default function ClientPostJob() {
       budget: 50,
       deadline: 7,
       pages: 5,
+      referenceFiles: [],
     },
   });
 
@@ -70,8 +74,18 @@ export default function ClientPostJob() {
     },
   });
 
+  // Update the referenceFiles value when files are uploaded
+  React.useEffect(() => {
+    form.setValue('referenceFiles', uploadedFiles);
+  }, [uploadedFiles, form]);
+
   const onSubmit = (values: JobFormValues) => {
-    createJobMutation.mutate(values);
+    // Add uploaded files to the job data
+    const jobData = {
+      ...values,
+      referenceFiles: uploadedFiles
+    };
+    createJobMutation.mutate(jobData);
   };
 
   return (
@@ -254,24 +268,21 @@ export default function ClientPostJob() {
                         )}
                       />
                       
-                      <div className="border rounded-md p-4">
-                        <h4 className="text-sm font-medium mb-3">Reference Materials (Optional)</h4>
-                        <div className="bg-muted/30 rounded-md p-3 mb-3">
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <div className="flex items-center">
-                              <Upload className="h-4 w-4 text-muted-foreground mr-2" />
-                              <span className="text-sm text-muted-foreground">Add files like examples, style guides, or other resources</span>
-                            </div>
-                            <Button variant="outline" size="sm" type="button" className="h-8 shrink-0">
-                              <Upload className="h-4 w-4 mr-1" />
-                              Upload Files
-                            </Button>
-                          </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Supported formats: PDF, DOC, DOCX, TXT, RTF, JPG, PNG (Max size: 10MB)
-                        </p>
-                      </div>
+                      <FormField
+                        control={form.control}
+                        name="referenceFiles"
+                        render={() => (
+                          <FormItem>
+                            <FileUpload
+                              uploadedFiles={uploadedFiles}
+                              setUploadedFiles={setUploadedFiles}
+                              maxFiles={5}
+                              allowedFileTypes={['.pdf', '.doc', '.docx', '.txt', '.rtf', '.jpg', '.jpeg', '.png']}
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
                     
                     <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row gap-3 justify-end items-center">
