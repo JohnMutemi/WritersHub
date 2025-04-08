@@ -222,6 +222,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get bids for a specific job with writer details
+  app.get("/api/jobs/:id/bids", hasRole(["client", "admin"]), async (req, res, next) => {
+    try {
+      const jobId = Number(req.params.id);
+      
+      // Check if job exists
+      const job = await storage.getJob(jobId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // If user is a client, check if job belongs to them
+      if (req.user.role === 'client' && job.clientId !== req.user.id) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      
+      // Get bids for the job
+      const bids = await storage.getBidsByJob(jobId);
+      
+      // Enhance bids with writer details and stats
+      const bidsWithDetails = await Promise.all(
+        bids.map(async (bid) => {
+          const writer = await storage.getUser(bid.writerId);
+          const writerStats = await storage.getWriterStats(bid.writerId);
+          
+          return {
+            ...bid,
+            writerUsername: writer?.username,
+            writerName: writer?.fullName,
+            proposal: bid.coverLetter,
+            // Include writer stats
+            stats: {
+              completedOrders: writerStats.completedOrders,
+              activeOrders: writerStats.activeOrders,
+              pendingBids: writerStats.pendingBids
+            }
+          };
+        })
+      );
+      
+      res.json(bidsWithDetails);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.post("/api/bids/:id/accept", hasRole(["client"]), async (req, res, next) => {
     try {
       const bidId = Number(req.params.id);

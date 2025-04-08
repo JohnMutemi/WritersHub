@@ -145,11 +145,24 @@ export interface AdminStats {
   pendingWriters: number;
 }
 
+// Writer stats interface
+export interface WriterStats {
+  balance: number;
+  completedOrders: number;
+  activeOrders: number;
+  pendingBids: number;
+}
+
 // Extended types for frontend use
 export interface BidWithDetails extends Bid {
   writerUsername?: string;
   writerName?: string;
   proposal?: string; // For backward compatibility, coverLetter is used in database
+  stats?: {
+    completedOrders: number;
+    activeOrders: number;
+    pendingBids: number;
+  };
 }
 
 export interface OrderWithDetails extends Order {
