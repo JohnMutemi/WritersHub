@@ -32,10 +32,12 @@ export default function AdminUsersPage() {
   const [isViewDetailsOpen, setIsViewDetailsOpen] = useState(false);
   const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   // Fetch users
   const { data: users, isLoading } = useQuery<User[]>({
-    queryKey: ['/api/users'],
+    queryKey: ['/api/admin/users'],
     retry: false
   });
 
@@ -46,7 +48,7 @@ export default function AdminUsersPage() {
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
       toast({
         title: 'Writer Approved',
         description: 'The writer has been approved successfully.',
@@ -69,7 +71,7 @@ export default function AdminUsersPage() {
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
       toast({
         title: 'Writer Rejected',
         description: 'The writer has been rejected.',
@@ -103,6 +105,17 @@ export default function AdminUsersPage() {
       return matchesSearch && matchesRole;
     });
   }, [users, searchTerm, roleFilter]);
+  
+  // Calculate pagination
+  const totalItems = filteredUsers.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (page - 1) * itemsPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+  
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
 
   // Handle viewing user details
   const handleViewUserDetails = (user: User) => {
@@ -239,7 +252,7 @@ export default function AdminUsersPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredUsers.map(user => (
+                paginatedUsers.map(user => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.id}</TableCell>
                     <TableCell>{user.username}</TableCell>
