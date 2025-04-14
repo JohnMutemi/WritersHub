@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { User } from '@shared/schema';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { apiRequest, queryClient } from '@/lib/queryClient';
+import { apiRequest, queryClient, getQueryFn } from '@/lib/queryClient';
 import { 
   Search, Filter, MoreHorizontal, ChevronDown, 
   Check, X, Edit, Eye, AlertTriangle
@@ -36,9 +36,10 @@ export default function AdminUsersPage() {
   const [itemsPerPage] = useState(10);
 
   // Fetch users
-  const { data: users, isLoading } = useQuery<User[]>({
+  const { data: users, isLoading, error } = useQuery<User[]>({
     queryKey: ['/api/admin/users'],
-    retry: false
+    retry: false,
+    queryFn: getQueryFn({ on401: "throw" })
   });
 
   // Approve writer mutation

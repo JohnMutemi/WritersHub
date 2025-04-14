@@ -34,9 +34,10 @@ export default function AdminJobsPage() {
   const [itemsPerPage] = useState(10);
 
   // Fetch jobs
-  const { data: jobs, isLoading } = useQuery<Job[]>({
+  const { data: jobs, isLoading, error } = useQuery<Job[]>({
     queryKey: ['/api/admin/jobs'],
-    retry: false
+    retry: false,
+    queryFn: getQueryFn({ on401: "throw" })
   });
 
   // Cancel job mutation
