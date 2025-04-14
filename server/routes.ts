@@ -711,18 +711,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin API routes
   app.get("/api/admin/users", hasRole(["admin"]), async (req, res, next) => {
     try {
-      // We'll use storage.getUsers() if it exists, otherwise we'll simulate it
-      // In a real app, you would implement this method
-      const users = await Promise.all(
-        (await storage.getJobs()).map(job => storage.getUser(job.clientId))
-      );
-      
-      // Remove duplicates
-      const uniqueUsers = users.filter((user, index, self) => 
-        user && index === self.findIndex(u => u && u.id === user.id)
-      );
-      
-      res.json(uniqueUsers);
+      const users = await storage.getAllUsers();
+      res.json(users);
     } catch (error) {
       next(error);
     }

@@ -189,6 +189,10 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
   
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+  
   // Job methods
   async getJobs(): Promise<Job[]> {
     return await db.select().from(jobs);
