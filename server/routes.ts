@@ -50,6 +50,10 @@ const upload = multer({
 
 // Middleware to check if user is authenticated
 const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+  console.log('isAuthenticated middleware - Auth status:', req.isAuthenticated());
+  console.log('Session ID:', req.sessionID);
+  console.log('Session data:', req.session);
+  
   if (req.isAuthenticated()) {
     return next();
   }
@@ -59,14 +63,24 @@ const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
 // Middleware to check user role
 const hasRole = (roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
+    console.log('hasRole middleware - Auth status:', req.isAuthenticated());
+    console.log('Session ID:', req.sessionID);
+    console.log('Session data:', req.session);
+    console.log('Required roles:', roles);
+    
     if (!req.isAuthenticated()) {
+      console.log('Authentication check failed');
       return res.status(401).json({ message: "Unauthorized" });
     }
     
+    console.log('User role:', req.user?.role);
+    
     if (!roles.includes(req.user!.role)) {
+      console.log('Role authorization failed');
       return res.status(403).json({ message: "Forbidden" });
     }
     
+    console.log('User authorized');
     next();
   };
 };
