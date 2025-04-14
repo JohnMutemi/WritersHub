@@ -30,10 +30,12 @@ export default function AdminJobsPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   // Fetch jobs
   const { data: jobs, isLoading } = useQuery<Job[]>({
-    queryKey: ['/api/jobs'],
+    queryKey: ['/api/admin/jobs'],
     retry: false
   });
 
@@ -44,7 +46,7 @@ export default function AdminJobsPage() {
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/jobs'] });
       toast({
         title: 'Job Cancelled',
         description: 'The job has been cancelled successfully.',
@@ -76,6 +78,17 @@ export default function AdminJobsPage() {
       return matchesSearch && matchesStatus;
     });
   }, [jobs, searchTerm, statusFilter]);
+  
+  // Calculate pagination
+  const totalItems = filteredJobs.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (page - 1) * itemsPerPage;
+  const paginatedJobs = filteredJobs.slice(startIndex, startIndex + itemsPerPage);
+  
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
 
   // Handle job cancellation
   const handleCancelJob = (job: Job) => {
@@ -189,7 +202,7 @@ export default function AdminJobsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredJobs.map(job => (
+                paginatedJobs.map(job => (
                   <TableRow key={job.id}>
                     <TableCell className="font-medium">{job.title}</TableCell>
                     <TableCell>{job.clientId}</TableCell>
@@ -223,6 +236,52 @@ export default function AdminJobsPage() {
               )}
             </TableBody>
           </Table>
+          
+          {/* Pagination Controls */}
+          {filteredJobs.length > 0 && (
+            <div className="flex items-center justify-between px-4 py-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, totalItems)} of {totalItems} jobs
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(1)}
+                  disabled={page === 1}
+                >
+                  First
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 1}
+                >
+                  Previous
+                </Button>
+                <div className="text-sm mx-2">
+                  Page {page} of {totalPages}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page === totalPages}
+                >
+                  Next
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={page === totalPages}
+                >
+                  Last
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

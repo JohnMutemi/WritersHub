@@ -44,7 +44,7 @@ export default function AdminUsersPage() {
   // Approve writer mutation
   const approveWriterMutation = useMutation({
     mutationFn: async (userId: number) => {
-      const res = await apiRequest('PATCH', `/api/users/${userId}/approve`, { status: 'approved' });
+      const res = await apiRequest('POST', `/api/admin/users/${userId}/approve`);
       return await res.json();
     },
     onSuccess: () => {
@@ -67,7 +67,7 @@ export default function AdminUsersPage() {
   // Reject writer mutation
   const rejectWriterMutation = useMutation({
     mutationFn: async (userId: number) => {
-      const res = await apiRequest('PATCH', `/api/users/${userId}/approve`, { status: 'rejected' });
+      const res = await apiRequest('POST', `/api/admin/users/${userId}/reject`);
       return await res.json();
     },
     onSuccess: () => {
@@ -305,6 +305,52 @@ export default function AdminUsersPage() {
               )}
             </TableBody>
           </Table>
+          
+          {/* Pagination Controls */}
+          {filteredUsers.length > 0 && (
+            <div className="flex items-center justify-between px-4 py-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, totalItems)} of {totalItems} users
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(1)}
+                  disabled={page === 1}
+                >
+                  First
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 1}
+                >
+                  Previous
+                </Button>
+                <div className="text-sm mx-2">
+                  Page {page} of {totalPages}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page === totalPages}
+                >
+                  Next
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={page === totalPages}
+                >
+                  Last
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
