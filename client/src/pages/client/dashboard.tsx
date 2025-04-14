@@ -749,7 +749,7 @@ export default function ClientDashboard() {
                 <div key={bid.id} className="p-4 border rounded-lg">
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h3 className="font-medium">{bid.writer.fullName || bid.writer.username}</h3>
+                      <h3 className="font-medium">{bid.writerName || bid.writerUsername}</h3>
                       <p className="text-sm text-muted-foreground">${bid.amount} • {bid.deliveryTime} days</p>
                     </div>
                     <Button 
