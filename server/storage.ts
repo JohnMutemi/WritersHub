@@ -52,6 +52,7 @@ export interface IStorage {
   updateUser(id: number, userData: Partial<User>): Promise<User>;
   updateUserBalance(id: number, amount: number): Promise<User>;
   updateWriterApprovalStatus(id: number, status: 'approved' | 'rejected'): Promise<User>;
+  getAllUsers(): Promise<User[]>;
   
   // Job methods
   getJobs(): Promise<Job[]>;
