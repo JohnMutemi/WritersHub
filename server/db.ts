@@ -1,17 +1,22 @@
-// filepath: c:\Users\Sam\Desktop\sam\CODEZONE\WritersHub\server\db.ts
+// db.ts
 import 'dotenv/config';
-import pkg from 'pg'; // import the default export from pg
-const { Pool } = pkg; // destructure Pool from the default export
-import { drizzle } from 'drizzle-orm/node-postgres'; // use node-postgres version for local db
+import pkg from 'pg';
+const { Pool } = pkg;
+import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from '@shared/schema';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    'DATABASE_URL must be set. Did you forget to provision a database?'
-  );
+// Select correct DB URL based on NODE_ENV
+let databaseUrl: string | undefined;
+
+if (process.env.NODE_ENV === 'production') {
+  databaseUrl = process.env.DATABASE_URL_PROD_EXTERNAL;
+} else {
+  databaseUrl = process.env.DATABASE_URL_DEV;
 }
 
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL is not set for the current environment.');
+}
+
+export const pool = new Pool({ connectionString: databaseUrl });
 export const db = drizzle(pool, { schema });
