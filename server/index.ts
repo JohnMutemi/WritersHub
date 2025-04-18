@@ -55,9 +55,9 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // 👇 Use '0.0.0.0' to work both locally and on Render
-  const HOST = process.env.HOST || '0.0.0.0';
-  const PORT = process.env.PORT || 5000;
+  const isProduction = process.env.NODE_ENV === 'production';
+  const HOST = '0.0.0.0';
+  const PORT = isProduction ? process.env.PORT || 5000 : 3000;
 
   server.listen(
     {
