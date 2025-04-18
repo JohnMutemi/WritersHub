@@ -55,32 +55,17 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  const port = 3000;
-  const fallbackPort = 5000;
+  // 👇 Use '0.0.0.0' to work both locally and on Render
+  const HOST = process.env.HOST || '0.0.0.0';
+  const PORT = process.env.PORT || 5000;
 
-  // 👇 Primary listener (use 'localhost' or '127.0.0.1')
   server.listen(
     {
-      port,
-      host: 'localhost',
+      port: Number(PORT),
+      host: HOST,
     },
     () => {
-      log(`🚀 Server is running at http://localhost:${port}`);
+      log(`🚀 Server is running at http://${HOST}:${PORT}`);
     }
   );
-
-  // 👇 Optional Replit/second port (safely wrapped)
-  try {
-    server.listen(
-      {
-        port: fallbackPort,
-        host: 'localhost',
-      },
-      () => {
-        log(`⚙️ Replit fallback: http://localhost:${fallbackPort}`);
-      }
-    );
-  } catch (error) {
-    log(`❌ Could not bind to port ${fallbackPort}: ${error}`);
-  }
 })();
